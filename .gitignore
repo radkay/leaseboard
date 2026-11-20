@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+**/config/master.key
+**/config/credentials/*.key
+**/log/
+**/tmp/
+**/_build/
+**/deps/
+**/node_modules/
+.DS_Store
