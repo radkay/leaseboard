@@ -77,6 +77,12 @@ One entry per decision. Newest at the bottom. Quote Ron's words when he makes th
 - **Why:** SPEC §5 stated the KPIs ambiguously, and the board (Agent B) needs one authoritative definition to read. Ron confirmed the physically-occupied reading for occupancy, the committed-lease reading for leased, and approved the `property_kpis_today` view.
 - **Ron:** "KPI definitions confirmed. 1. Occupancy % counts every physically occupied unit (occupied, on_notice, on_notice_rented.) 2. Leased % counts units with a current or signed future lease (occupied, on_notice_rented, vacant_rented;) units on notice with no new lease don't count. 3. Available units = vacant_available + on_notice. Approve the property_kpis_today view."
 
+### D-011 · 2026-11-21 · Log entries proposed in PRs, written at checkpoints
+- **Decision:** Feature PRs propose D-### and R-### entries in their descriptions. The checkpoint PR into `main` writes all proposed entries to DECISIONS.md and REVIEW-LOG.md, numbered in order, in one commit.
+- **Options considered:** every PR edits the log files directly (the process until now); one log file per entry; proposals in PRs, written at checkpoints.
+- **Why:** Every PR appended to the end of the same two files, so concurrent PRs conflicted. This happened twice with one agent (#7, #11). Adding a second agent (D-005) would make it constant. Writing the logs at checkpoints removes the conflicts and gives Ron one place to review all entries.
+- **Ron:** "Changing how we keep the decision and review logs, before we bring in a second agent. Two PRs (#7, #11) already conflicted in DECISIONS.md because every PR appends to the end of the same file. With two agents working in parallel, that becomes constant rework. From now on, PRs propose log entries in their descriptions, and the checkpoint PR into main writes them to the log files in order, in one commit."
+
 ## Versions (pin at setup)
 Checked 2026-11-21 against official release pages. Library versions (Rails, Phoenix, LiveView, Sanity) are the current releases. Lock files pin them when the apps are generated.
 
