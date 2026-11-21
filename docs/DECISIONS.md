@@ -59,6 +59,12 @@ One entry per decision. Newest at the bottom. Quote Ron's words when he makes th
 - **Why:** (a) is the form used by the official devcontainers Compose templates and recommended by the VS Code maintainers for container volumes (microsoft/vscode-remote-release#5388). Its one risk, exposing sibling folders on the host to the container, is avoided by the two recommended setups, and by the "alone in its own parent folder" rule for local folders.
 - **Ron:**
 
+### D-009 · 2026-11-21 · CI shape: one workflow, path-filtered app jobs, a single `ci-ok` gate
+- **Decision:** One `.github/workflows/ci.yml` with a job per app (Rails, Phoenix, Sanity), each guarded by a path filter so it runs only when its directory changed. A `changes` job detects the touched paths with plain `git diff` (no third-party action), and a single always-running `ci-ok` job aggregates the results — green only if every app job passed or was skipped. `ci-ok` is the one check the `dev` ruleset will require.
+- **Options considered:** separate workflow files per app; `dorny/paths-filter` (or similar) for path detection; making each app job itself a required check in the ruleset.
+- **Why:** A monorepo touches one app at a time far more often than all three, so path filters keep CI fast and the signal relevant. Native `git diff` avoids adding an action outside the pre-approved set (`ruby/setup-ruby`, `erlef/setup-beam`, `actions/setup-node`), so no dependency approval is needed. A single `ci-ok` gate means the ruleset needs exactly one required check whose name never changes as apps come and go, and "passed or skipped" lets an unrelated PR go green without running every app. Versions still come from the one root `.tool-versions` (D-004).
+- **Ron:**
+
 ## Versions (pin at setup)
 Checked 2026-11-21 against official release pages. Library versions (Rails, Phoenix, LiveView, Sanity) are the current releases. Lock files pin them when the apps are generated.
 
