@@ -59,6 +59,12 @@ One entry per decision. Newest at the bottom. Quote Ron's words when he makes th
 - **Why:** (a) is the form used by the official devcontainers Compose templates and recommended by the VS Code maintainers for container volumes (microsoft/vscode-remote-release#5388). Its one risk, exposing sibling folders on the host to the container, is avoided by the two recommended setups, and by the "alone in its own parent folder" rule for local folders.
 - **Ron:**
 
+### D-008 · 2026-11-21 · Rails skeleton: one Postgres, no Solid*, SQL schema format
+- **Decision:** Generate `apps/admin` with `rails new --database=postgresql --skip-kamal --skip-ci --skip-solid` and set `config.active_record.schema_format = :sql`. One Postgres database; no Solid Cache/Queue/Cable; the schema is dumped as `db/structure.sql`, not `schema.rb`.
+- **Options considered:** keep the Rails 8 defaults (Solid Cache/Queue/Cable on SQLite side databases, `schema.rb`); drop Solid* and use `:sql`.
+- **Why:** The architecture is one shared Postgres that Phoenix reads (SPEC §4); the Solid* adapters add extra databases and migrations this app doesn't need. The derived-status Postgres **view** (`unit_status_today`, D-003) and the read-only `board_reader` role can't be represented in `schema.rb`, so `:sql` is the only format that dumps them faithfully. `--skip-ci` and `--skip-kamal` because CI is one monorepo workflow (task 4) and deploys go to Render, not Kamal.
+- **Ron:**
+
 ### D-009 · 2026-11-21 · CI shape: one workflow, path-filtered app jobs, a single `ci-ok` gate
 - **Decision:** One `.github/workflows/ci.yml` with a job per app (Rails, Phoenix, Sanity), each guarded by a path filter so it runs only when its directory changed. A `changes` job detects the touched paths with plain `git diff` (no third-party action), and a single always-running `ci-ok` job aggregates the results — green only if every app job passed or was skipped. `ci-ok` is the one check the `dev` ruleset will require.
 - **Options considered:** separate workflow files per app; `dorny/paths-filter` (or similar) for path detection; making each app job itself a required check in the ruleset.
