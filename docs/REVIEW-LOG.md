@@ -33,3 +33,10 @@ it shows the judgment behind the agents. Log every correction honestly. Newest a
 - **Problem:** security / process. One convenience click widened the agent's permissions far beyond the read-only commands intended, before any deny rules existed to limit it.
 - **Fix:** Stop-gap: narrowed the local allow list to read-only git commands and git-ignored the file. Lasting fix: the committed deny rules in `.claude/settings.json` override any local allow, and the GitHub rulesets block force-push and direct pushes to `main` on GitHub's side.
 - **Caught by:** Ron's review (independent review session)
+
+### R-004 · 2026-11-21 · Workspace mount hid the cloned repo; toolchain never installed
+- **Where:** `.devcontainer/compose.yml`
+- **Agent produced:** A bind mount `..:/workspaces/leaseboard`, and a PR statement that "Clone Repository in Container Volume" works with it. Docker wasn't installed yet, so this was untested.
+- **Problem:** correctness. With a container volume, `..` is resolved on Docker's host, not in the volume, so an empty directory was mounted over the cloned repo. mise found no `.tool-versions`, so Ruby, Erlang and Elixir were never installed, and Node fell back to the Claude Code feature's v18.
+- **Fix:** Changed the app service's mount to `../..:/workspaces:cached` (the repo's parent at `/workspaces`, with `workspaceFolder` unchanged at `/workspaces/leaseboard`), matching the official devcontainers Compose templates and the maintainer-recommended form for Clone in Container Volume in microsoft/vscode-remote-release#5388.
+- **Caught by:** Ron's review (first container build; the risk was flagged when compose.yml was reviewed)
