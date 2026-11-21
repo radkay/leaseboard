@@ -1,0 +1,14 @@
+# Sanity build output
+dist/
+
+# Sanity CLI runtime cache
+.sanity/
+
+# Local environment (project id, tokens) — never committed
+.env
+.env.local
+.env.*.local
+
+# Dependencies and logs
+node_modules/
+npm-debug.log*
