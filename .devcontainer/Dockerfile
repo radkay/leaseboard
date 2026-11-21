@@ -29,3 +29,12 @@ COPY --from=ghcr.io/jdx/mise:2026.11.12 /usr/local/bin/mise /usr/local/bin/mise
 # mise shims on PATH so login, non-login and VS Code task shells all use the
 # versions pinned in .tool-versions.
 ENV PATH="/home/vscode/.local/share/mise/shims:${PATH}"
+
+# ~/.claude is a named volume (devcontainer.json mounts it so Claude Code's login
+# and config survive rebuilds). Docker seeds a new, empty named volume from the
+# image's contents at the mount point, ownership included; if that directory does
+# not exist in the image Docker creates it owned by root, and Claude Code can't
+# write its login. Create it owned by vscode so a fresh volume inherits that.
+# Docker volumes docs, "Populate a volume using a container":
+# https://docs.docker.com/engine/storage/volumes/#populate-a-volume-using-a-container
+RUN install -d -o vscode -g vscode /home/vscode/.claude
