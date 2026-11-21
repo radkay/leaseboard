@@ -47,14 +47,23 @@ One entry per decision. Newest at the bottom. Quote Ron's words when he makes th
 - **Why:** Keeps agents moving while Ron is away, and enforces the human gate in GitHub rather than in agent instructions.
 - **Ron:**
 
+### D-004 · 2026-11-21 · mise + `.tool-versions` as the single version source
+- **Decision:** A root `.tool-versions` pins Ruby, Erlang, Elixir and Node. mise installs from it in the devcontainer. CI reads the same file through `ruby/setup-ruby`, `erlef/setup-beam` (`version-file: .tool-versions`, `version-type: strict`) and `actions/setup-node` (`node-version-file: .tool-versions`). Postgres is pinned by image tag in `.devcontainer/compose.yml` and in the CI service.
+- **Options considered:** versions hard-coded separately in the Dockerfile and in each CI job; devcontainer features per language (no Elixir/Erlang feature is published by the devcontainers org); asdf; mise with `mise.toml`.
+- **Why:** One file, read natively by mise and by the standard setup actions, so the devcontainer and CI can't drift. `.tool-versions` rather than `mise.toml` because all three setup actions read it. Elixir is pinned without an `-otp-NN` suffix because setup-beam documents only plain Elixir versions as input.
+- **Ron:**
+
 ## Versions (pin at setup)
-| Tool | Version |
-|---|---|
-| Ruby | |
-| Rails | |
-| Erlang/OTP | |
-| Elixir | |
-| Phoenix / LiveView | |
-| Node | |
-| Postgres | |
-| Sanity | |
+Checked 2026-11-21 against official release pages. Library versions (Rails, Phoenix, LiveView, Sanity) are the current releases. Lock files pin them when the apps are generated.
+
+| Tool | Version | Source |
+|---|---|---|
+| Ruby | 4.0.10 | ruby-lang.org/en/downloads |
+| Rails | 8.1.4.1 (requires Ruby >= 3.2.0) | rubygems.org/gems/rails |
+| Erlang/OTP | 29.1.2 | erlang.org/downloads |
+| Elixir | 1.20.5 (supports OTP 27-29) | elixir-lang.org/install, Elixir compatibility table |
+| Phoenix / LiveView | 1.8.17 (requires Elixir ~> 1.15) / 1.2.15 | hex.pm |
+| Node | 26.13.1 (Active LTS) | nodejs.org, github.com/nodejs/release |
+| Postgres | 18 (image `postgres:18.7`) | render.com/docs/postgresql-upgrading: Render offers 13-18, not 19 |
+| Sanity | 6.24.0 | registry.npmjs.org/sanity/latest |
+| Dev container base | `mcr.microsoft.com/devcontainers/base:3.0.14-ubuntu24.04` | mcr.microsoft.com tag list |
