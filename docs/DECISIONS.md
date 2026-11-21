@@ -53,6 +53,12 @@ One entry per decision. Newest at the bottom. Quote Ron's words when he makes th
 - **Why:** One file, read natively by mise and by the standard setup actions, so the devcontainer and CI can't drift. `.tool-versions` rather than `mise.toml` because all three setup actions read it. Elixir is pinned without an `-otp-NN` suffix because setup-beam documents only plain Elixir versions as input.
 - **Ron:**
 
+### D-007 · 2026-11-21 · Supported ways to open the devcontainer
+- **Decision:** Open the devcontainer with "Clone Repository in Container Volume" or GitHub Codespaces. When opening a local folder ("Reopen in Container") instead, the repo must sit alone in its own parent folder. The compose file mounts the repo's parent at `/workspaces` (`../..:/workspaces:cached`).
+- **Options considered:** (a) the template mount `../..:/workspaces`, which works for container volumes, Codespaces and local folders, but mounts a local folder's whole parent directory; (b) `..:/workspaces/leaseboard`, which mounts only the repo for a local folder but hides the clone under container volumes (R-004).
+- **Why:** (a) is the form used by the official devcontainers Compose templates and recommended by the VS Code maintainers for container volumes (microsoft/vscode-remote-release#5388). Its one risk, exposing sibling folders on the host to the container, is avoided by the two recommended setups, and by the "alone in its own parent folder" rule for local folders.
+- **Ron:**
+
 ## Versions (pin at setup)
 Checked 2026-11-21 against official release pages. Library versions (Rails, Phoenix, LiveView, Sanity) are the current releases. Lock files pin them when the apps are generated.
 
