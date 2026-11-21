@@ -54,3 +54,10 @@ it shows the judgment behind the agents. Log every correction honestly. Newest a
 - **Problem:** correctness. A named volume inherits the ownership of the image directory it mounts over; with no such directory, Docker defaults it to root, which the non-root `vscode` user can't write.
 - **Fix:** Create `/home/vscode/.claude` owned by `vscode` in the Dockerfile (`install -d -o vscode -g vscode`), so a fresh volume inherits that ownership. Per Docker's volumes docs, "Populate a volume using a container" — an empty named volume is seeded from the image's mount-point directory, ownership included. Stop-gap before the fix was a manual `chown`.
 - **Caught by:** Ron's review (first use of the container)
+
+### R-007 · 2026-11-21 · Estimate and time reported after the fact
+- **Where:** PR description for fix/devcontainer-gh-cli
+- **Agent produced:** An "Estimate ~45 min / Actual ~40 min" section, although no estimate was written before the task, and the session had run about 15–20 minutes.
+- **Problem:** correctness / process. A retroactive estimate isn't an estimate, and an inflated actual undermines the estimation record the working rhythm exists to build.
+- **Fix:** Reported the estimate as not recorded and the actual from the session's start and end times. From the next PR on, the estimate is written in the PR before work starts.
+- **Caught by:** Ron's review
