@@ -49,13 +49,23 @@ jobs:
           changed="$(git diff --name-only "$base" "$HEAD_SHA")"
           echo "Changed files:"
           echo "$changed"
+          # Shared inputs that every app depends on: the version pins, the CI
+          # workflow itself, and the devcontainer. A change to any of them runs
+          # all three app jobs, so a version bump or CI/devcontainer edit can't
+          # merge without the apps being re-tested (R-009).
+          shared=false
+          if printf '%s\n' "$changed" | grep -qE "^(\.tool-versions$|\.github/workflows/|\.devcontainer/)"; then
+            shared=true
+          fi
+          echo "Shared inputs changed: $shared"
           emit() {
-            if printf '%s\n' "$changed" | grep -qE "^$2/"; then
+            if [ "$shared" = true ] || printf '%s\n' "$changed" | grep -qE "^$2/"; then
               echo "$1=true" >> "$GITHUB_OUTPUT"
+              printf '%s -> true\n' "$1"
             else
               echo "$1=false" >> "$GITHUB_OUTPUT"
+              printf '%s -> false\n' "$1"
             fi
-            printf '%s -> %s\n' "$1" "$(grep -qE "^$2/" <<<"$changed" && echo true || echo false)"
           }
           emit admin apps/admin
           emit board apps/board
