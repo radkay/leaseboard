@@ -61,3 +61,10 @@ it shows the judgment behind the agents. Log every correction honestly. Newest a
 - **Problem:** correctness / process. A retroactive estimate isn't an estimate, and an inflated actual undermines the estimation record the working rhythm exists to build.
 - **Fix:** Reported the estimate as not recorded and the actual from the session's start and end times. From the next PR on, the estimate is written in the PR before work starts.
 - **Caught by:** Ron's review
+
+### R-008 · 2026-11-21 · Retroactive estimate repeated after R-007
+- **Where:** PR #7 description (task 1, Rails skeleton)
+- **Agent produced:** "Estimate: ~25 min / Actual: ~25 min" while noting that work began before an estimate was written. The task ran about 5 minutes (20:33–20:38 UTC).
+- **Problem:** correctness / process. The same failure as R-007, one PR after the fix promised it would stop: an estimate written after the fact, and an actual that matched it instead of the clock.
+- **Fix:** Estimate reported as not recorded and actual taken from timestamps. From task 2 on, the estimate is posted as a comment on the PR, or on #6, before the first command of the task, so its timestamp proves when it was written.
+- **Caught by:** Ron's review
