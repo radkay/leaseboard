@@ -40,3 +40,17 @@ it shows the judgment behind the agents. Log every correction honestly. Newest a
 - **Problem:** correctness. With a container volume, `..` is resolved on Docker's host, not in the volume, so an empty directory was mounted over the cloned repo. mise found no `.tool-versions`, so Ruby, Erlang and Elixir were never installed, and Node fell back to the Claude Code feature's v18.
 - **Fix:** Changed the app service's mount to `../..:/workspaces:cached` (the repo's parent at `/workspaces`, with `workspaceFolder` unchanged at `/workspaces/leaseboard`), matching the official devcontainers Compose templates and the maintainer-recommended form for Clone in Container Volume in microsoft/vscode-remote-release#5388.
 - **Caught by:** Ron's review (first container build; the risk was flagged when compose.yml was reviewed)
+
+### R-005 · 2026-11-21 · Devcontainer shipped without `gh`, which the working rhythm depends on
+- **Where:** `.devcontainer/devcontainer.json`
+- **Agent produced:** A devcontainer with the Claude Code feature but no GitHub CLI, even though CLAUDE.md's working rhythm runs every task through `gh` (open the PR, enable auto-merge, record the actual time) and the bot signs in as leaseboard-bot via `gh auth`.
+- **Problem:** correctness / completeness. The prescribed workflow couldn't be executed in a fresh container; `gh` had to be installed by hand before the first PR could be opened.
+- **Fix:** Added the official `ghcr.io/devcontainers/features/github-cli:1` feature (pinned to major 1) and committed `.devcontainer/devcontainer-lock.json` pinning it to the resolved digest, so every rebuild gets the same `gh`.
+- **Caught by:** Ron's review (first use of the container)
+
+### R-006 · 2026-11-21 · Claude config volume owned by root, so the login couldn't be saved
+- **Where:** `.devcontainer/Dockerfile`
+- **Agent produced:** A named volume mounted at `/home/vscode/.claude` to persist Claude Code's login, but no matching directory in the image. Docker created the empty volume's mount point owned by root, so Claude Code (running as `vscode`) couldn't write to it and the login didn't persist.
+- **Problem:** correctness. A named volume inherits the ownership of the image directory it mounts over; with no such directory, Docker defaults it to root, which the non-root `vscode` user can't write.
+- **Fix:** Create `/home/vscode/.claude` owned by `vscode` in the Dockerfile (`install -d -o vscode -g vscode`), so a fresh volume inherits that ownership. Per Docker's volumes docs, "Populate a volume using a container" — an empty named volume is seeded from the image's mount-point directory, ownership included. Stop-gap before the fix was a manual `chown`.
+- **Caught by:** Ron's review (first use of the container)
