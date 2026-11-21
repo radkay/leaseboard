@@ -1,0 +1,38 @@
+name: leaseboard
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    command: sleep infinity
+    volumes:
+      - ..:/workspaces/leaseboard:cached
+    env_file:
+      - path: ../.env.example
+      - path: ../.env
+        required: false
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    # Render managed Postgres offers majors 13-18 (not 19); match the newest.
+    image: postgres:18.7
+    restart: unless-stopped
+    env_file:
+      - path: ../.env.example
+      - path: ../.env
+        required: false
+    # From Postgres 18 the image keeps data under /var/lib/postgresql/<major>/,
+    # so the volume mounts the parent directory.
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
