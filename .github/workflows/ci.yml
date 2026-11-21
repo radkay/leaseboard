@@ -5,10 +5,12 @@ on:
     branches: [main, dev]
   pull_request:
 
-# One run per branch/PR; newer pushes cancel in-flight runs.
+# One run per branch/PR. Cancel superseded runs only on pull requests; pushes to
+# dev and main always run to completion, so every integration commit is tested
+# even when merges land back to back (R-010).
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
