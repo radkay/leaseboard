@@ -19,6 +19,7 @@ When there is an idiomatic way, use it. When you are unsure of the idiom, say so
 Everything else (code, tests, docs inside the agreed scope) you may do without asking. Show the diff and test results.
 
 ## Hard rules
+- **Never attribute a decision or quote to Ron** unless he stated it verbatim in the current session. Otherwise leave "Ron:" blank for him to fill in.
 - **Synthetic data only.** Never use or reproduce code, data, client names or schemas from any employer or client.
 - **Rails is the only writer.** Phoenix connects as `board_reader` (SELECT only) and must never write.
 - **Status rules live in one place** (the Rails-owned view/query). Phoenix reads them and never re-implements them.
@@ -58,5 +59,12 @@ Everything else (code, tests, docs inside the agreed scope) you may do without a
 - CI must be green before any merge to `main`.
 
 ## Working rhythm
-For each task: restate the goal in one line → propose the approach (flag any "stop and ask" item)
-→ write the tests → implement → run tests and lint → show the result → wait for Ron's review.
+For each task: restate the goal in one line → write your estimate in the PR → write the tests
+→ implement → run tests and lint → push a feature branch → open a PR into `dev` → enable
+auto-merge (`gh pr merge --auto --rebase`) → record the actual time in the PR.
+- Stop-and-ask items that Ron has not pre-approved: label the PR `needs-ron`, do not enable
+  auto-merge, put the question under a "Questions for Ron" heading, and continue with work that
+  does not depend on it.
+- Only Ron merges into `main`. `dev → main` PRs use a merge commit.
+- Propose D-### and R-### entries in the PR description; they are added to the log files in the
+  PR itself, with "Ron:" left blank unless he said it verbatim.
