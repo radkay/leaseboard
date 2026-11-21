@@ -61,3 +61,10 @@ it shows the judgment behind the agents. Log every correction honestly. Newest a
 - **Problem:** correctness / process. A retroactive estimate isn't an estimate, and an inflated actual undermines the estimation record the working rhythm exists to build.
 - **Fix:** Reported the estimate as not recorded and the actual from the session's start and end times. From the next PR on, the estimate is written in the PR before work starts.
 - **Caught by:** Ron's review
+
+### R-010 · 2026-11-21 · CI cancelled runs on dev, so a merge went untested
+- **Where:** `.github/workflows/ci.yml` (`concurrency`)
+- **Agent produced:** `cancel-in-progress: true` for every event, grouped by branch.
+- **Problem:** correctness. Merging #8 and #9 back to back pushed to `dev` twice; the second run cancelled the first, so the Phoenix job never finished on `dev`. Because each push run only tests its own changes, nothing re-tested it.
+- **Fix:** In-progress runs are cancelled only for pull requests; pushes to `dev` and `main` always run to completion.
+- **Caught by:** Ron's review (first merges into `dev`)
