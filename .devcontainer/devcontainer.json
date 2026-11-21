@@ -1,0 +1,38 @@
+{
+  "name": "Leaseboard",
+  "dockerComposeFile": "compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/leaseboard",
+  "remoteUser": "vscode",
+
+  "features": {
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
+  },
+
+  "mounts": [
+    "source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume"
+  ],
+  "containerEnv": {
+    "CLAUDE_CONFIG_DIR": "/home/vscode/.claude",
+    "MISE_TRUSTED_CONFIG_PATHS": "/workspaces/leaseboard"
+  },
+
+  "forwardPorts": [3000, 4000, 3333],
+  "portsAttributes": {
+    "3000": { "label": "Rails admin" },
+    "4000": { "label": "Phoenix board" },
+    "3333": { "label": "Sanity Studio" }
+  },
+
+  "postCreateCommand": "mise install",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Shopify.ruby-lsp",
+        "JakeBecker.elixir-ls",
+        "ms-ossdata.vscode-pgsql"
+      ]
+    }
+  }
+}
