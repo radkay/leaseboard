@@ -82,31 +82,22 @@ SPEC §5 states the KPIs as:
 > + vacant_rented + on_notice_rented, minus on_notice), **available units**
 > (vacant_available + on_notice).
 
-Rails implements the arithmetic; Phoenix reads the three result columns. **Two points in
-§5's wording are ambiguous and must be confirmed before the KPI columns are relied on**
-(the status rules in §1, the view columns, and the NOTIFY below are unaffected):
+Rails implements the arithmetic; Phoenix reads the three result columns. SPEC §5's wording
+left two points open — whether "on notice" includes `on_notice_rented`, and leased %'s
+"minus on_notice" — which Ron resolved (D-010). The definitions are now authoritative:
 
-1. **Does "on notice" mean just `on_notice`, or `on_notice` + `on_notice_rented`?** Both
-   statuses are physically occupied now, so occupancy % reads most naturally as
-   `(occupied + on_notice + on_notice_rented) / total`. But "available units
-   (vacant_available + on_notice)" should almost certainly *exclude* `on_notice_rented`
-   (those units already have a replacement lease), i.e. `vacant_available + on_notice`.
-   So "on notice" appears to mean different sets in different KPIs.
-2. **Leased %'s "minus on_notice".** `occupied`, `on_notice` and `on_notice_rented` are
-   distinct statuses, so "occupied + … minus on_notice" only makes sense if "occupied"
-   there means *all physically-occupied* units (`occupied + on_notice + on_notice_rented`)
-   before subtracting `on_notice`.
-
-Proposed reading, to confirm with Ron (not yet authoritative):
+- **Occupancy %** counts every physically occupied unit: `occupied`, `on_notice`,
+  `on_notice_rented`.
+- **Leased %** counts units with a current or signed future lease: `occupied`,
+  `on_notice_rented`, `vacant_rented`. Units on notice with no new lease (`on_notice`)
+  do not count.
+- **Available units** = `vacant_available` + `on_notice`.
 
 ```
 occupancy_pct   = 100 * (occupied + on_notice + on_notice_rented) / total_units
 leased_pct      = 100 * (occupied + on_notice_rented + vacant_rented) / total_units
 available_units = vacant_available + on_notice
 ```
-
-Until Ron confirms, treat the **column names and types** as fixed and the **formulas**
-as provisional.
 
 ---
 
