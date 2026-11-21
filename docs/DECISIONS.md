@@ -59,6 +59,12 @@ One entry per decision. Newest at the bottom. Quote Ron's words when he makes th
 - **Why:** (a) is the form used by the official devcontainers Compose templates and recommended by the VS Code maintainers for container volumes (microsoft/vscode-remote-release#5388). Its one risk, exposing sibling folders on the host to the container, is avoided by the two recommended setups, and by the "alone in its own parent folder" rule for local folders.
 - **Ron:**
 
+### D-010 · 2026-11-21 · Board KPI definitions confirmed
+- **Decision:** The three KPIs in `property_kpis_today` are: `occupancy_pct = 100 * (occupied + on_notice + on_notice_rented) / total_units`; `leased_pct = 100 * (occupied + on_notice_rented + vacant_rented) / total_units`; `available_units = vacant_available + on_notice`. CONTRACT.md §3.1 is updated to match and is now authoritative.
+- **Options considered:** the two readings SPEC §5's informal wording left open — whether "on notice" includes `on_notice_rented`, and how to read leased %'s "minus on_notice" (both set out in CONTRACT.md §3.1 before this confirmation).
+- **Why:** SPEC §5 stated the KPIs ambiguously, and the board (Agent B) needs one authoritative definition to read. Ron confirmed the physically-occupied reading for occupancy, the committed-lease reading for leased, and approved the `property_kpis_today` view.
+- **Ron:** "KPI definitions confirmed. 1. Occupancy % counts every physically occupied unit (occupied, on_notice, on_notice_rented.) 2. Leased % counts units with a current or signed future lease (occupied, on_notice_rented, vacant_rented;) units on notice with no new lease don't count. 3. Available units = vacant_available + on_notice. Approve the property_kpis_today view."
+
 ## Versions (pin at setup)
 Checked 2026-11-21 against official release pages. Library versions (Rails, Phoenix, LiveView, Sanity) are the current releases. Lock files pin them when the apps are generated.
 
