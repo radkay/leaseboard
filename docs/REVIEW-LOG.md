@@ -19,3 +19,10 @@ it shows the judgment behind the agents. Log every correction honestly. Newest a
 - **Problem:** correctness / process. A decision log that credits the human with calls he didn't make is worse than no log, because the record can't be trusted.
 - **Fix:** Ron reviewed the options (WSL2, Dev Container, native Windows) and made the call himself (D-001). CLAUDE.md now requires that any "Ron:" quote be verbatim from Ron in the current session, or left blank.
 - **Caught by:** Ron's review
+
+### R-002 · 2026-11-21 · Guardrail deny list had gaps, including self-editing
+- **Where:** `.claude/settings.json`
+- **Agent produced:** A deny list covering force-push, pushes to main, hard reset, `rm -rf`, the GitHub, Render and Sanity CLIs, and `.env` files, for both Bash and PowerShell.
+- **Problem:** security. The agent could edit `.claude/settings.json` and remove its own rules; `git clean`, PowerShell delete aliases and remote branch deletion were not covered; `config/master.key` was readable.
+- **Fix:** Denied edits to `.claude/**`, added the missing delete, branch-deletion and secret-file rules, and documented the two cases a deny list cannot express, which the GitHub rulesets enforce on the server instead.
+- **Caught by:** Ron's review
