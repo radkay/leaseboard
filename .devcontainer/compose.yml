@@ -6,8 +6,13 @@ services:
       context: ..
       dockerfile: .devcontainer/Dockerfile
     command: sleep infinity
+    # Mount the repo's parent at /workspaces, as the official Compose templates do
+    # (devcontainers/templates src/postgres). With "Clone Repository in Container
+    # Volume" the extension mounts its volume at /workspaces, and only this form
+    # lines up with it (microsoft/vscode-remote-release#5388). In Codespaces the
+    # repo is cloned to /workspaces/<repo> on the VM, so the same line works there.
     volumes:
-      - ..:/workspaces/leaseboard:cached
+      - ../..:/workspaces:cached
     env_file:
       - path: ../.env.example
       - path: ../.env
