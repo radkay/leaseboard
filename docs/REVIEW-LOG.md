@@ -26,3 +26,10 @@ it shows the judgment behind the agents. Log every correction honestly. Newest a
 - **Problem:** security. The agent could edit `.claude/settings.json` and remove its own rules; `git clean`, PowerShell delete aliases and remote branch deletion were not covered; `config/master.key` was readable.
 - **Fix:** Denied edits to `.claude/**`, added the missing delete, branch-deletion and secret-file rules, and documented the two cases a deny list cannot express, which the GitHub rulesets enforce on the server instead.
 - **Caught by:** Ron's review
+
+### R-003 · 2026-11-21 · A "don't ask again" approval allowed every git command
+- **Where:** `.claude/settings.local.json` (local, uncommitted permissions)
+- **Agent produced:** Not agent code. Approving a git prompt with "don't ask again" saved the rule `PowerShell(git *)`, which allowed every git command without asking, including force-push and `git reset --hard`. The file was ignored only by a machine-level global git ignore, not by the repo's .gitignore, so a fresh clone (the devcontainer or a reviewer's Codespace) would not ignore it.
+- **Problem:** security / process. One convenience click widened the agent's permissions far beyond the read-only commands intended, before any deny rules existed to limit it.
+- **Fix:** Stop-gap: narrowed the local allow list to read-only git commands and git-ignored the file. Lasting fix: the committed deny rules in `.claude/settings.json` override any local allow, and the GitHub rulesets block force-push and direct pushes to `main` on GitHub's side.
+- **Caught by:** Ron's review (independent review session)
