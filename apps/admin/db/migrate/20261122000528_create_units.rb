@@ -1,7 +1,8 @@
 class CreateUnits < ActiveRecord::Migration[8.1]
   def change
     create_table :units do |t|
-      t.references :property, null: false, foreign_key: true
+      # Deferrable so fixtures load without superuser (see CreateLeases).
+      t.references :property, null: false, foreign_key: { deferrable: :deferred }
       t.string :number, null: false
       t.integer :bedrooms, null: false
       t.decimal :bathrooms, precision: 3, scale: 1, null: false

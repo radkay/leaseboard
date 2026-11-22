@@ -3,8 +3,11 @@ class CreateLeases < ActiveRecord::Migration[8.1]
     enable_extension "btree_gist" unless extension_enabled?("btree_gist")
 
     create_table :leases do |t|
-      t.references :unit, null: false, foreign_key: true
-      t.references :resident, null: false, foreign_key: true
+      # Deferrable so fixtures (and any multi-row transaction) can be inserted in
+      # any order and checked at commit — Rails' non-superuser owner cannot disable
+      # referential integrity to bulk-load fixtures.
+      t.references :unit, null: false, foreign_key: { deferrable: :deferred }
+      t.references :resident, null: false, foreign_key: { deferrable: :deferred }
       t.date :start_date, null: false
       t.date :end_date, null: false
       t.decimal :monthly_rent, precision: 10, scale: 2, null: false
