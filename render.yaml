@@ -1,46 +1,56 @@
 # Render Blueprint for Leaseboard — admin (Rails), board (Phoenix), one Postgres.
 #
-# This file is written but NOT applied. Ron creates the Blueprint from it in the
-# morning (see docs/DEPLOY.md), sets every `sync: false` secret by hand, seeds the
-# database once, and imports the Sanity content.
+# Written but NOT applied. Ron creates the Blueprint from it (see docs/DEPLOY.md),
+# creates the read-only reader_prod role by hand first, sets every `sync: false`
+# secret, seeds once, and imports the Sanity content.
 #
-# Keep all three resources in the SAME region so the board's reads and the admin's
-# writes stay on a local network to the database.
+# One database, owned by Rails; the board reads it as a reader role (CONTRACT.md
+# Environments table). Keep all three resources in the same region so the board's
+# reads and the admin's writes stay on Render's private network to the database.
+#
+# Field names and plan identifiers are from Render's Blueprint and compute-plan
+# references:
+#   https://render.com/docs/blueprint-spec
+#   https://render.com/docs/compute-plans
+# Plans use Render's current compute identifiers; the names Ron referenced are the
+# legacy aliases for the same tiers: db "Basic-256mb" = `0.1c-256mb`, web "Starter"
+# = `0.5c-512mb`.
 
 databases:
-  - name: leaseboard-db
-    plan: free # see the free-tier note at the bottom of this file
+  - name: leaseboard-db # Render resource label only; the database is `databaseName`
+    databaseName: leaseboard_prod
+    user: admin_prod # the owner role (Rails); created with the database
+    plan: "0.1c-256mb"
     region: oregon
     postgresMajorVersion: "18"
 
 services:
   # --- admin (Rails, the only writer) --------------------------------------
   # Native Ruby runtime. Commands and variables come from apps/admin/DEPLOY.md
-  # (Agent A owns the admin; this Blueprint just wires it up).
+  # (Agent A owns the admin; this Blueprint wires it up).
   - type: web
     name: leaseboard-admin
     runtime: ruby
-    plan: free
+    plan: "0.5c-512mb"
     region: oregon
     rootDir: apps/admin
-    buildCommand: "SECRET_KEY_BASE_DUMMY=1 bin/rails assets:precompile"
-    # Runs on every deploy, before the new version takes traffic. db:migrate also
-    # provisions the read-only board_reader role, which needs BOARD_READER_PASSWORD.
+    buildCommand: "./bin/render-build.sh"
+    # Runs after build, before the new version takes traffic (paid plans only).
+    # db:migrate triggers the db:privileges hook, which grants reader_prod its read
+    # surface — so reader_prod must already exist (created by hand, see DEPLOY.md).
     preDeployCommand: "bin/rails db:migrate"
     startCommand: "bin/rails server"
     healthCheckPath: /up
     envVars:
       - key: RAILS_ENV
         value: production
-      # The owner connection string, straight from the managed database.
+      # The owner (admin_prod) connection string, straight from the database.
       - key: DATABASE_URL
         fromDatabase:
           name: leaseboard-db
           property: connectionString
       # Secrets — set by hand in the dashboard (see docs/DEPLOY.md).
       - key: SECRET_KEY_BASE
-        sync: false
-      - key: BOARD_READER_PASSWORD # shared with the board's DATABASE_URL
         sync: false
       - key: ADMIN_USERNAME
         sync: false
@@ -55,21 +65,21 @@ services:
         sync: false
 
   # --- board (Phoenix, read-only) ------------------------------------------
-  # Docker runtime: apps/board/Dockerfile (mix phx.gen.release --docker). Paths are
-  # relative to rootDir.
+  # Docker runtime: apps/board/Dockerfile. The Dockerfile's COPY paths are relative
+  # to the build context, so set dockerContext to apps/board (repo-root-relative);
+  # no rootDir, to keep the Docker paths unambiguous.
   - type: web
     name: leaseboard-board
     runtime: docker
-    plan: free
+    plan: "0.5c-512mb"
     region: oregon
-    rootDir: apps/board
-    dockerfilePath: ./Dockerfile
-    dockerContext: .
+    dockerfilePath: apps/board/Dockerfile
+    dockerContext: apps/board
     healthCheckPath: /healthz
     envVars:
-      # The board_reader connection string — NOT fromDatabase (that would be the
-      # owner). Ron builds it from the database's host/name plus the board_reader
-      # user and BOARD_READER_PASSWORD (see docs/DEPLOY.md).
+      # The reader_prod connection string on the INTERNAL host — NOT fromDatabase
+      # (that is the owner). Ron builds it from the database's internal host and
+      # name plus the reader_prod user and its password (see docs/DEPLOY.md).
       - key: DATABASE_URL
         sync: false
       - key: SECRET_KEY_BASE
@@ -78,11 +88,3 @@ services:
       - key: PHX_HOST
         sync: false
     # Render injects PORT and the board's runtime.exs binds to it — don't set it here.
-
-# --- Free-tier note (question for Ron) -------------------------------------
-# All three resources are on `free` so the whole stack can run at no cost. Trade-offs:
-#   * Free web services sleep after ~15 minutes idle; the first request then takes
-#     ~30s to wake. The board's live updates still work once awake.
-#   * Free Postgres is removed ~30 days after creation and is capped at 1GB.
-# For a persistent demo, upgrade `leaseboard-db` (and optionally the services) to the
-# Starter tier. Left on free pending Ron's call — see the PR.
