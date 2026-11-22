@@ -2,7 +2,7 @@
 -- superuser (postgres); never by an application. Idempotent.
 --
 -- psql variables (all required), supplied by db/bootstrap:
---   db, owner, owner_password, reader, reader_password
+--   db, owner, owner_password, reader, reader_password, grant_owner_membership (on|off)
 --
 --   psql -v ON_ERROR_STOP=1 \
 --     -v db=leaseboard_dev -v owner=admin_dev -v owner_password=... \
@@ -32,3 +32,10 @@ SELECT format('ALTER ROLE %I WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASS
 SELECT format('CREATE DATABASE %I OWNER %I', :'db', :'owner')
   WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = :'db')\gexec
 SELECT format('ALTER DATABASE %I OWNER TO %I', :'db', :'owner')\gexec
+
+-- Test only: make the owner a member of the reader role, so the read-only tests can
+-- SET LOCAL ROLE to the reader in-process (Board.DataCase.as_reader/1). Granting role
+-- membership needs the superuser, so it belongs here rather than in a migration or the
+-- privileges script. Gated on :grant_owner_membership so it never happens in dev or prod.
+SELECT format('GRANT %I TO %I', :'reader', :'owner')
+  WHERE :'grant_owner_membership' = 'on'\gexec
