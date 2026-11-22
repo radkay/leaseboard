@@ -1,7 +1,8 @@
 # Rails ↔ Phoenix read contract
 
 This file fixes the read interface between Rails (the only writer) and the Phoenix
-board (read-only, connects as `board_reader`). It operationalizes D-003 (status as a
+board (read-only, connects as its environment's reader role — see the Environments
+table below). It operationalizes D-003 (status as a
 Rails-owned Postgres view) and D-005 (parallel agents split by app, with this contract
 as the boundary). It is derived from **SPEC §5**.
 
