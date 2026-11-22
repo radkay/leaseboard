@@ -127,23 +127,22 @@ Loads the three `propertyListing` documents and their placeholder images into th
 Sanity dataset. Run once, after the seed (the slugs must match the seeded
 properties).
 
-Prerequisites: the Studio is configured for project `0dws7msn`, and you're
-authenticated (`npx sanity login`, or `SANITY_AUTH_TOKEN` with write access).
+Prerequisites: the Sanity project (`0dws7msn`) and dataset (`production`), and write
+access. Authenticate with `npx sanity login`, or export a write token as
+`SANITY_IMPORT_TOKEN` (the variable the import CLI reads; see
+`npx sanity dataset import --help`).
 
 From the `studio/` directory:
 
 ```sh
-# Dry run first — validates the documents and asset references without writing:
-npx sanity dataset import seed-content/listings.ndjson production --replace --dry-run
-
-# Then the real import:
-npx sanity dataset import seed-content/listings.ndjson production --replace
+npx sanity dataset import seed-content/listings.ndjson --dataset production --project 0dws7msn --replace
 ```
 
 `--replace` upserts by document id (`listing-<slug>`), so re-running is safe. The
-image paths are relative to `seed-content/`, which is the import tool's asset base;
-run it from `studio/` exactly as above. See `studio/seed-content/README.md` to
-regenerate the content.
+image references are `image@file://./images/...`, resolved against `seed-content/`,
+so run the import from `studio/` exactly as above. There is no `--dry-run` flag; run
+`npx sanity dataset import --help` for the options. See `studio/seed-content/README.md`
+to regenerate the content.
 
 ## 8. Verify
 
