@@ -20,6 +20,23 @@ read contract.
 
 ---
 
+## Environments
+
+Databases, owner roles and reader roles are defined **only** here. No app config, script
+or migration may create, rename or connect to a database or role that is not in this table.
+
+| Environment | Database | Owner (Rails) | Reader (Phoenix) | Created by |
+|---|---|---|---|---|
+| Development | `leaseboard_dev` | `admin_dev` | `reader_dev` | bootstrap script, as `postgres` |
+| Test (local and CI) | `leaseboard_test` | `admin_test` | `reader_test` | bootstrap script, as `postgres` |
+| Production | `leaseboard_prod` | `admin_prod` | `reader_prod` | Render creates the database and `admin_prod`; Ron creates `reader_prod` with SQL at deploy |
+
+- No role can connect to another environment's database.
+- No app connects as `postgres`; it is used only to create databases and roles.
+- Grants and the function lockdown come from one privileges script, never from migrations.
+
+---
+
 ## 1. Status values
 
 Exactly these five values, derived per unit and never stored (SPEC §5). Rules, verbatim
