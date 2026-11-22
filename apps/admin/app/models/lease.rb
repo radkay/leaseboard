@@ -18,7 +18,21 @@ class Lease < ApplicationRecord
   validate :end_date_after_start_date
   validate :no_overlapping_live_leases
 
+  # Every committed lease write tells the Phoenix board which property changed. Runs
+  # after_commit (not inside the transaction) so the board only hears about changes
+  # that actually landed. Payload is the property id as text (CONTRACT.md §6).
+  after_commit :notify_board_of_change
+
   private
+
+  def notify_board_of_change
+    property_id = unit&.property_id
+    return if property_id.nil?
+
+    self.class.connection.execute(
+      self.class.sanitize_sql([ "SELECT pg_notify('lease_changed', ?)", property_id.to_s ])
+    )
+  end
 
   def end_date_after_start_date
     return if start_date.blank? || end_date.blank?

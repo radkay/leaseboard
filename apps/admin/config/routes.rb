@@ -1,7 +1,16 @@
 Rails.application.routes.draw do
-  resources :leases
+  resources :leases do
+    member do
+      post :give_notice
+      post :sign_renewal
+    end
+  end
   resources :residents
-  resources :units
+  resources :units do
+    member do
+      post :sign_new_lease
+    end
+  end
   resources :properties
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 

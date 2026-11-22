@@ -40,4 +40,15 @@ class UnitsControllerTest < ActionDispatch::IntegrationTest
     assert_nothing_raised { unit.property.name } # preloaded
     assert_raises(ActiveRecord::StrictLoadingViolationError) { unit.leases.to_a }
   end
+
+  test "sign_new_lease member action creates a resident and a lease" do
+    unit = units(:sunset_102) # vacant
+    assert_difference([ "Resident.count", "Lease.count" ], 1) do
+      post sign_new_lease_unit_url(unit), params: {
+        resident: { first_name: "Evan", last_name: "Field", email: "evan.field@example.test", phone: "555-0150" },
+        start_date: Date.current.to_s, end_date: (Date.current + 365).to_s, monthly_rent: 1500
+      }
+    end
+    assert_response :redirect
+  end
 end
