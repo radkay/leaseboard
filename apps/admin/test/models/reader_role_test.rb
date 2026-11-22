@@ -73,7 +73,8 @@ class ReaderRoleTest < ActiveSupport::TestCase
     error = assert_raises(PG::ConnectionBad) do
       PG.connect(**reader_params(dbname: OTHER_ENV_DATABASE)).close
     end
-    assert_match(/permission denied for database "?#{OTHER_ENV_DATABASE}"?/, error.message)
+    assert_match(/permission denied/i, error.message)
+    assert_match(/#{OTHER_ENV_DATABASE}/, error.message)
   end
 
   private

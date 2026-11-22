@@ -47,8 +47,9 @@ module PrivilegesScript
   # The bootstrap script (db/bootstrap) creates the reader role before the database
   # is built; fail with a clear message if that step was skipped.
   def ensure_reader_exists!(connection, reader)
+    validate!(reader)
     return if connection.select_value(
-      ActiveRecord::Base.sanitize_sql([ "SELECT 1 FROM pg_roles WHERE rolname = ?", reader ])
+      "SELECT 1 FROM pg_roles WHERE rolname = #{connection.quote(reader)}"
     )
 
     raise "reader role #{reader.inspect} does not exist — run db/bootstrap first"
