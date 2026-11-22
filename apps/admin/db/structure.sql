@@ -63,6 +63,73 @@ CREATE TABLE public.leases (
 
 
 --
+-- Name: properties; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.properties (
+    id bigint NOT NULL,
+    name character varying NOT NULL,
+    address character varying NOT NULL,
+    city character varying NOT NULL,
+    state character varying NOT NULL,
+    sanity_slug character varying,
+    units_count integer DEFAULT 0 NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
+-- Name: units; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.units (
+    id bigint NOT NULL,
+    property_id bigint NOT NULL,
+    number character varying NOT NULL,
+    bedrooms integer NOT NULL,
+    bathrooms numeric(3,1) NOT NULL,
+    sq_ft integer NOT NULL,
+    market_rent numeric(10,2) NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL,
+    CONSTRAINT units_bathrooms_positive CHECK ((bathrooms > (0)::numeric)),
+    CONSTRAINT units_bedrooms_non_negative CHECK ((bedrooms >= 0)),
+    CONSTRAINT units_market_rent_positive CHECK ((market_rent > (0)::numeric)),
+    CONSTRAINT units_sq_ft_positive CHECK ((sq_ft > 0))
+);
+
+
+--
+-- Name: lease_expirations_12m; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.lease_expirations_12m AS
+ WITH months AS (
+         SELECT (((date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))::date + ((n.n || ' months'::text))::interval))::date AS month
+           FROM generate_series(0, 11) n(n)
+        ), expiring AS (
+         SELECT u.property_id,
+            (date_trunc('month'::text, (l.end_date)::timestamp with time zone))::date AS month,
+            (EXISTS ( SELECT 1
+                   FROM public.leases nl
+                  WHERE ((nl.unit_id = l.unit_id) AND ((nl.status)::text = 'pending'::text) AND (nl.start_date > l.end_date)))) AS has_followon
+           FROM (public.leases l
+             JOIN public.units u ON ((u.id = l.unit_id)))
+          WHERE ((l.status)::text = ANY ((ARRAY['active'::character varying, 'notice_given'::character varying])::text[]))
+        )
+ SELECT p.id AS property_id,
+    m.month,
+    count(e.has_followon) AS expiring_total,
+    count(*) FILTER (WHERE e.has_followon) AS expiring_renewed_or_relet,
+    count(*) FILTER (WHERE (e.has_followon IS FALSE)) AS expiring_open
+   FROM ((public.properties p
+     CROSS JOIN months m)
+     LEFT JOIN expiring e ON (((e.property_id = p.id) AND (e.month = m.month))))
+  GROUP BY p.id, m.month;
+
+
+--
 -- Name: leases_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -82,23 +149,6 @@ ALTER SEQUENCE public.leases_id_seq OWNED BY public.leases.id;
 
 
 --
--- Name: properties; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.properties (
-    id bigint NOT NULL,
-    name character varying NOT NULL,
-    address character varying NOT NULL,
-    city character varying NOT NULL,
-    state character varying NOT NULL,
-    sanity_slug character varying,
-    units_count integer DEFAULT 0 NOT NULL,
-    created_at timestamp(6) without time zone NOT NULL,
-    updated_at timestamp(6) without time zone NOT NULL
-);
-
-
---
 -- Name: properties_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -115,6 +165,103 @@ CREATE SEQUENCE public.properties_id_seq
 --
 
 ALTER SEQUENCE public.properties_id_seq OWNED BY public.properties.id;
+
+
+--
+-- Name: unit_status_today; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.unit_status_today AS
+ WITH current_lease AS (
+         SELECT DISTINCT ON (l.unit_id) l.unit_id,
+            l.status,
+            l.monthly_rent,
+            l.end_date,
+            l.notice_date,
+            l.move_out_date
+           FROM public.leases l
+          WHERE (((l.status)::text = ANY ((ARRAY['active'::character varying, 'notice_given'::character varying])::text[])) AND ((CURRENT_DATE >= l.start_date) AND (CURRENT_DATE <= l.end_date)))
+          ORDER BY l.unit_id, l.start_date DESC
+        ), next_pending AS (
+         SELECT DISTINCT ON (l.unit_id) l.unit_id,
+            l.start_date
+           FROM public.leases l
+          WHERE ((l.status)::text = 'pending'::text)
+          ORDER BY l.unit_id, l.start_date
+        )
+ SELECT u.id AS unit_id,
+    u.property_id,
+    u.number AS unit_number,
+    u.bedrooms,
+    u.market_rent,
+        CASE
+            WHEN ((cl.status)::text = 'active'::text) THEN 'occupied'::text
+            WHEN (((cl.status)::text = 'notice_given'::text) AND (np.unit_id IS NOT NULL)) THEN 'on_notice_rented'::text
+            WHEN ((cl.status)::text = 'notice_given'::text) THEN 'on_notice'::text
+            WHEN ((cl.unit_id IS NULL) AND (np.unit_id IS NOT NULL)) THEN 'vacant_rented'::text
+            ELSE 'vacant_available'::text
+        END AS status,
+    cl.monthly_rent AS current_monthly_rent,
+    cl.end_date AS current_lease_end_date,
+    cl.notice_date,
+    cl.move_out_date,
+    np.start_date AS next_lease_start_date,
+    CURRENT_DATE AS as_of
+   FROM ((public.units u
+     LEFT JOIN current_lease cl ON ((cl.unit_id = u.id)))
+     LEFT JOIN next_pending np ON ((np.unit_id = u.id)));
+
+
+--
+-- Name: property_kpis_today; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.property_kpis_today AS
+ SELECT p.id AS property_id,
+    count(ust.unit_id) AS total_units,
+    count(*) FILTER (WHERE (ust.status = 'occupied'::text)) AS occupied,
+    count(*) FILTER (WHERE (ust.status = 'on_notice'::text)) AS on_notice,
+    count(*) FILTER (WHERE (ust.status = 'on_notice_rented'::text)) AS on_notice_rented,
+    count(*) FILTER (WHERE (ust.status = 'vacant_rented'::text)) AS vacant_rented,
+    count(*) FILTER (WHERE (ust.status = 'vacant_available'::text)) AS vacant_available,
+        CASE
+            WHEN (count(ust.unit_id) = 0) THEN (0)::numeric
+            ELSE round(((100.0 * (count(*) FILTER (WHERE (ust.status = ANY (ARRAY['occupied'::text, 'on_notice'::text, 'on_notice_rented'::text]))))::numeric) / (count(ust.unit_id))::numeric), 2)
+        END AS occupancy_pct,
+        CASE
+            WHEN (count(ust.unit_id) = 0) THEN (0)::numeric
+            ELSE round(((100.0 * (count(*) FILTER (WHERE (ust.status = ANY (ARRAY['occupied'::text, 'on_notice_rented'::text, 'vacant_rented'::text]))))::numeric) / (count(ust.unit_id))::numeric), 2)
+        END AS leased_pct,
+    count(*) FILTER (WHERE (ust.status = ANY (ARRAY['vacant_available'::text, 'on_notice'::text]))) AS available_units
+   FROM (public.properties p
+     LEFT JOIN public.unit_status_today ust ON ((ust.property_id = p.id)))
+  GROUP BY p.id;
+
+
+--
+-- Name: property_unit_type_kpis_today; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.property_unit_type_kpis_today AS
+ SELECT property_id,
+    bedrooms,
+    count(unit_id) AS total_units,
+    count(*) FILTER (WHERE (status = 'occupied'::text)) AS occupied,
+    count(*) FILTER (WHERE (status = 'on_notice'::text)) AS on_notice,
+    count(*) FILTER (WHERE (status = 'on_notice_rented'::text)) AS on_notice_rented,
+    count(*) FILTER (WHERE (status = 'vacant_rented'::text)) AS vacant_rented,
+    count(*) FILTER (WHERE (status = 'vacant_available'::text)) AS vacant_available,
+        CASE
+            WHEN (count(unit_id) = 0) THEN (0)::numeric
+            ELSE round(((100.0 * (count(*) FILTER (WHERE (status = ANY (ARRAY['occupied'::text, 'on_notice'::text, 'on_notice_rented'::text]))))::numeric) / (count(unit_id))::numeric), 2)
+        END AS occupancy_pct,
+        CASE
+            WHEN (count(unit_id) = 0) THEN (0)::numeric
+            ELSE round(((100.0 * (count(*) FILTER (WHERE (status = ANY (ARRAY['occupied'::text, 'on_notice_rented'::text, 'vacant_rented'::text]))))::numeric) / (count(unit_id))::numeric), 2)
+        END AS leased_pct,
+    count(*) FILTER (WHERE (status = ANY (ARRAY['vacant_available'::text, 'on_notice'::text]))) AS available_units
+   FROM public.unit_status_today ust
+  GROUP BY property_id, bedrooms;
 
 
 --
@@ -157,27 +304,6 @@ ALTER SEQUENCE public.residents_id_seq OWNED BY public.residents.id;
 
 CREATE TABLE public.schema_migrations (
     version character varying NOT NULL
-);
-
-
---
--- Name: units; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.units (
-    id bigint NOT NULL,
-    property_id bigint NOT NULL,
-    number character varying NOT NULL,
-    bedrooms integer NOT NULL,
-    bathrooms numeric(3,1) NOT NULL,
-    sq_ft integer NOT NULL,
-    market_rent numeric(10,2) NOT NULL,
-    created_at timestamp(6) without time zone NOT NULL,
-    updated_at timestamp(6) without time zone NOT NULL,
-    CONSTRAINT units_bathrooms_positive CHECK ((bathrooms > (0)::numeric)),
-    CONSTRAINT units_bedrooms_non_negative CHECK ((bedrooms >= 0)),
-    CONSTRAINT units_market_rent_positive CHECK ((market_rent > (0)::numeric)),
-    CONSTRAINT units_sq_ft_positive CHECK ((sq_ft > 0))
 );
 
 
@@ -357,6 +483,7 @@ ALTER TABLE ONLY public.leases
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20261122001704'),
 ('20261122000537'),
 ('20261122000532'),
 ('20261122000528'),
