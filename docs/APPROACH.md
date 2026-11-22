@@ -1,7 +1,7 @@
 # Approach
 
 Leaseboard shows evidence of using parallel agent work streams to build, test, and deploy
-robust, production-quality applications in stacks the human hadn't shipped before (Rails,
+robust, production-quality applications in stacks I hadn't shipped before (Rails,
 Elixir/Phoenix, Sanity), while keeping a human in the loop for oversight and
 decision-making. The app is the vehicle; the exhibit is the process: the decisions, the
 reviews, and the guardrails that make agent work trustworthy. This page summarizes how it
@@ -35,9 +35,6 @@ No single mechanism is trusted; they stack, strongest on the server:
 3. **Auto-mode classifier:** blocks the agent from merging its own PRs; it stopped a
    self-merge even when the branch had no required checks, which is what surfaced the need
    for a required CI gate.
-4. **GitHub rulesets:** the server-side backstop that enforces what instructions can't:
-   force-push and direct pushes to `main` are blocked, and `dev → main` requires Ron's
-   review ([D-006](DECISIONS.md)).
 
 **Platform-native controls.** The rules that matter most are enforced by GitHub itself, not
 by instructions an agent could ignore. Branch rulesets require a pull request for every
@@ -47,8 +44,8 @@ GitHub's native auto-merge lets agents merge into `dev` only once that check pas
 work under a separate `leaseboard-bot` account, so GitHub, not trust, guarantees that an
 agent can never approve its own way into `main`. Issues serve as the agents' work orders,
 and pull request descriptions carry their proposed log entries. Agent-side deny rules and
-Claude Code's own permission checks are a first layer; GitHub is the backstop (D-006, R-002,
-R-003).
+Claude Code's own permission checks are a first layer; GitHub is the backstop
+([D-006](DECISIONS.md), R-002, R-003).
 
 ## Review and oversight
 Agents built the code; review happened in layers. CI and the guardrails checked every
@@ -72,7 +69,7 @@ a stop-and-ask item.
 The decision and review logs are the exhibit, so they can't be a source of merge conflicts.
 Feature PRs **propose** entries in their descriptions; the `dev → main` checkpoint PR writes
 them all to the files, numbered in order, in one commit ([D-011](DECISIONS.md)). This also
-gives Ron one place to review every entry.
+gives me one place to review every entry.
 
 ## Platform-first choices
 The design leans on the database and the platform rather than extra services, "boring
@@ -90,9 +87,8 @@ technology" (SPEC §2):
   ([D-015](DECISIONS.md)).
 
 ## Scope notes
-This is a weekend build, so some production practices are deliberately out of scope. A true
-production setup would add a staging environment: `dev` deployed automatically to staging
-for verification, and `main` promoted to production only after it passes there. Here, the
-`dev` branch and the checkpoint PRs into `main` play that role. The first checkpoint exposed
-a race that had passed by chance on every PR; a production setup would add a staging
-environment and GitHub's merge queue, so `main` only ever receives verified merges.
+This is a weekend build, so some production practices are deliberately out of scope. The
+first checkpoint exposed a race that had passed by chance on every PR (R-016). A true
+production setup would add a staging environment, with `dev` deployed automatically for
+verification, and GitHub's merge queue, so `main` only ever receives verified merges. Here,
+the `dev` branch and the checkpoint PRs into `main` play that role.
