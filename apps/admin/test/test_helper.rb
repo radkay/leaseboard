@@ -2,6 +2,21 @@ ENV["RAILS_ENV"] ||= "test"
 require_relative "../config/environment"
 require "rails/test_help"
 
+# Rails' automatic test-schema maintenance is off (config/environments/test.rb): it
+# purges the database, which the non-superuser owner can't do. Check the schema is
+# current ourselves and fail fast with the in-place refresh command if it isn't.
+unless ActiveRecord::Tasks::DatabaseTasks.schema_up_to_date?(ActiveRecord::Base.connection_db_config)
+  abort <<~MSG
+    [leaseboard] The test database schema is out of date (apps/admin/db/structure.sql changed).
+    The test owner (admin_test) isn't a superuser and can't recreate the database, so refresh
+    it in place:
+
+        RAILS_ENV=test bin/rails db:test:refresh
+
+    (First run `db/bootstrap test` if leaseboard_test or its roles don't exist yet.)
+  MSG
+end
+
 module ActiveSupport
   class TestCase
     # Single test database (leaseboard_test), created once by db/bootstrap. The
