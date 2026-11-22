@@ -213,3 +213,24 @@ judgment and design: the calls caught by reading the work.
 - **Problem:** process. A PR with an open question for Ron should carry `needs-ron` and not auto-merge, so the question is not lost at merge.
 - **Fix:** Process reminder issued: any PR with a "Questions for Ron" section gets `needs-ron` and does not auto-merge.
 - **Caught by:** Ron's review
+
+### R-025 · 2026-11-22 · The Sanity import runbook was never run
+- **Where:** `docs/DEPLOY.md` (the Sanity import step) and the listing NDJSON
+- **Agent produced:** The import runbook used a non-existent `--dry-run` flag and the wrong token variable, and the NDJSON asset references lacked the `file://` scheme the importer requires.
+- **Problem:** correctness; platform behavior was asserted without checking Sanity's docs (CLAUDE.md rule).
+- **Fix:** #85, #83; import verified in production at 17:07.
+- **Caught by:** Ron's production run
+
+### R-026 · 2026-11-22 · "Placeholder copy — replace before launch." shipped on the public listings
+- **Where:** the public listing pages (Sanity listing content), which the README links to
+- **Agent produced:** "Placeholder copy — replace before launch." was published on the public listing pages that the README links to.
+- **Problem:** correctness, public-facing.
+- **Fix:** #87, re-imported 17:29.
+- **Caught by:** the review assistant
+
+### R-027 · 2026-11-22 · README claims a reviewer could check were false
+- **Where:** `README.md` (draft)
+- **Agent produced:** The README draft claimed branch rules require a reviewed PR for every change (false for dev, D-010) and that logs are written "as it happens" (contradicts D-011).
+- **Problem:** correctness; a public claim a reviewer can check.
+- **Fix:** #83.
+- **Caught by:** the review assistant
