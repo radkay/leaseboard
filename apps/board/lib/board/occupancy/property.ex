@@ -2,7 +2,8 @@ defmodule Board.Occupancy.Property do
   @moduledoc """
   A property, read from the Rails-owned `properties` table (CONTRACT.md: the
   board reader may `SELECT` `properties` for names). Read-only — the board
-  connects as `board_reader` and never writes, so there is no changeset.
+  connects as the environment's reader role and never writes, so there is no
+  changeset.
   """
   use Ecto.Schema
 
