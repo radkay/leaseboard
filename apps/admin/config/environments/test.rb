@@ -37,6 +37,13 @@ Rails.application.configure do
   # is unnecessary here.
   config.active_record.verify_foreign_keys_for_fixtures = false
 
+  # Don't let Rails auto-maintain the test schema: when structure.sql changes it
+  # would run db:test:prepare, which purges (drops and recreates) the database — and
+  # the non-superuser owner can't do that. test_helper.rb checks the schema is current
+  # instead and, if not, points at `bin/rails db:test:refresh` (which rebuilds the
+  # schema in place).
+  config.active_record.maintain_test_schema = false
+
   # Store uploaded files on the local file system in a temporary directory.
   config.active_storage.service = :test
 
