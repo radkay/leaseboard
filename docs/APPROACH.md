@@ -49,7 +49,7 @@ Claude Code's own permission checks are a first layer; GitHub is the backstop
 
 ## Review and oversight
 Agents built the code; review happened in layers. CI and the guardrails checked every
-change automatically. A separate review assistant, an independent AI session with no write
+change automatically. A separate review assistant, a separate AI session with no write
 access to the repository, checked agent plans and pull requests against the spec and
 CLAUDE.md, and raised concerns. I made every decision and approved every merge into `main`.
 Corrections from any of these layers are recorded in REVIEW-LOG.md, including the time the
