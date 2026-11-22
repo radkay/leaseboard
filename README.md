@@ -21,3 +21,7 @@ If you open a local folder instead ("Reopen in Container"), the repo must sit al
 parent folder. The container mounts the repo's parent directory at `/workspaces`, so any other
 repositories or files beside it would be visible inside the container. See D-007 in
 [docs/DECISIONS.md](docs/DECISIONS.md).
+
+## License
+
+Licensed under the [MIT License](LICENSE).
