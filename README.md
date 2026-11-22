@@ -14,7 +14,7 @@ All data is synthetic.
 > **Demo GIF placeholder.** I record a short clip here: a lease change in the admin updating
 > the board live, within a second, with no page reload.
 
-The admin is behind a login. Access is available on request: `[CONTACT]`.
+The admin is behind a login. Access is available on request: [LinkedIn](https://www.linkedin.com/in/radkay/).
 
 ## How it was built
 
