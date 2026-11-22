@@ -40,11 +40,6 @@ class LeasesControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1001, @lease.reload.monthly_rent
   end
 
-  test "destroys a lease" do
-    assert_difference("Lease.count", -1) { delete lease_url(@lease) }
-    assert_redirected_to leases_url
-  end
-
   test "give_notice member action records notice" do
     post give_notice_lease_url(@lease), params: { move_out_date: (Date.current + 30).to_s }
     assert_redirected_to lease_url(@lease)

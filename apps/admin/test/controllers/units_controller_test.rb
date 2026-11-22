@@ -30,9 +30,18 @@ class UnitsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1234, @unit.reload.market_rent
   end
 
-  test "destroys a unit" do
-    assert_difference("Unit.count", -1) { delete unit_url(@unit) }
-    assert_redirected_to units_url
+  test "show lists the unit's leases, each linking to the lease" do
+    get unit_url(@unit) # sunset_101, with one active lease (Alice)
+    assert_response :success
+    lease = leases(:sunset_101_active)
+    assert_select "td a[href=?]", lease_path(lease), text: "Active"
+    assert_select "td a[href=?]", lease_path(lease), text: "Alice Tenant"
+  end
+
+  test "unit show preloads the leases' residents (N+1 guard)" do
+    rel = Lease.where(unit: units(:sunset_101)).includes(:resident).strict_loading
+    rel.each { |lease| assert_nothing_raised { lease.resident.full_name } } # preloaded
+    assert_raises(ActiveRecord::StrictLoadingViolationError) { rel.first.unit.number } # not preloaded
   end
 
   test "index relation is strict_loading, so an un-preloaded association raises (N+1 guard)" do

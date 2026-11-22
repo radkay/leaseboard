@@ -1,5 +1,5 @@
 class UnitsController < ApplicationController
-  before_action :set_unit, only: %i[ show edit update destroy sign_new_lease ]
+  before_action :set_unit, only: %i[ show edit update sign_new_lease ]
 
   # GET /units or /units.json
   def index
@@ -8,6 +8,8 @@ class UnitsController < ApplicationController
 
   # GET /units/1 or /units/1.json
   def show
+    # All of the unit's leases, newest first, with residents preloaded (no N+1).
+    @leases = @unit.leases.includes(:resident).order(start_date: :desc, id: :desc).strict_loading
   end
 
   # GET /units/new
@@ -44,16 +46,6 @@ class UnitsController < ApplicationController
         format.html { render :edit, status: :unprocessable_content }
         format.json { render json: @unit.errors, status: :unprocessable_content }
       end
-    end
-  end
-
-  # DELETE /units/1 or /units/1.json
-  def destroy
-    @unit.destroy!
-
-    respond_to do |format|
-      format.html { redirect_to units_path, notice: "Unit was successfully destroyed.", status: :see_other }
-      format.json { head :no_content }
     end
   end
 

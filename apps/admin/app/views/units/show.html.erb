@@ -1,7 +1,30 @@
-<p style="color: green"><%= notice %></p>
-<p style="color: red"><%= alert %></p>
+<% content_for :title, "Unit #{@unit.number}" %>
+
+<% if notice %><p class="flash"><%= notice %></p><% end %>
+<% if alert %><p class="flash alert"><%= alert %></p><% end %>
 
 <%= render @unit %>
+
+<h2>Leases</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Status</th><th>Resident</th><th class="num">Rent</th><th>Lease start</th><th>Lease end</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @leases.each do |lease| %>
+      <tr>
+        <td><%= link_to status_pill(lease.status), lease %></td>
+        <td><%= link_to lease.resident.full_name, lease %></td>
+        <td class="num"><%= money(lease.monthly_rent) %></td>
+        <td><%= pretty_date(lease.start_date) %></td>
+        <td><%= pretty_date(lease.end_date) %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
 
 <fieldset>
   <legend>Sign a new lease (new resident)</legend>
@@ -19,9 +42,7 @@
   <% end %>
 </fieldset>
 
-<div>
-  <%= link_to "Edit this unit", edit_unit_path(@unit) %> |
+<div class="actions">
+  <%= link_to "Edit this unit", edit_unit_path(@unit) %>
   <%= link_to "Back to units", units_path %>
-
-  <%= button_to "Destroy this unit", @unit, method: :delete %>
 </div>
