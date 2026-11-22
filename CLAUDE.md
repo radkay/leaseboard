@@ -63,9 +63,13 @@ one commit. Feature PRs do not edit these files, so concurrent PRs never conflic
 - CI must be green before any merge to `main`.
 
 ## Working rhythm
-For each task: restate the goal in one line → write your estimate in the PR → write the tests
-→ implement → run tests and lint → push a feature branch → open a PR into `dev` → enable
+For each task: restate the goal in one line → write **two estimates** in the PR → write the
+tests → implement → run tests and lint → push a feature branch → open a PR into `dev` → enable
 auto-merge (`gh pr merge --auto --rebase`) → record the actual time in the PR.
+- **Two estimates, every time.** Give **human time** (what a senior engineer would take) and
+  **agent time** (what you expect to take). Record the actual (agent wall-clock) against both,
+  so the record shows the human baseline, the agent's prediction, and what it actually took
+  (D-014).
 - Stop-and-ask items that Ron has not pre-approved: label the PR `needs-ron`, do not enable
   auto-merge, put the question under a "Questions for Ron" heading, and continue with work that
   does not depend on it.
