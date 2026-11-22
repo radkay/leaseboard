@@ -1,10 +1,149 @@
 /*
- * This is a manifest file that'll be compiled into application.css.
- *
- * With Propshaft, assets are served efficiently without preprocessing steps. You can still include
- * application-wide styles in this file, but keep in mind that CSS precedence will follow the standard
- * cascading order, meaning styles declared later in the document or manifest will override earlier ones,
- * depending on specificity.
- *
- * Consider organizing styles into separate files for maintainability.
+ * Leaseboard admin + public listing styles. Plain Propshaft CSS, no framework.
+ * Tokens are the single set from docs/DESIGN.md (editorial restraint: type, space
+ * and color discipline; thin rules, no boxes or shadows).
  */
+
+:root {
+  --bg: #faf8f4;
+  --text: #1a1a17;
+  --text-secondary: #6a6a61;
+  --rule: #e4e0d8;
+  --accent: #1f5c3d;
+
+  --status-occupied: #2e3a46;
+  --status-on-notice: #8a5a12;
+  --status-on-notice-rented: #246e73;
+  --status-vacant-rented: #516b48;
+  --status-vacant-available: #9c4a2f;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+  --space-7: 64px;
+
+  --radius: 2px;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --measure: 68ch;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 1rem;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+main { padding: var(--space-5) var(--space-5) var(--space-7); }
+
+/* Type -------------------------------------------------------------------- */
+h1, h2, h3 { line-height: 1.1; letter-spacing: -0.01em; font-weight: 600; margin: 0 0 var(--space-3); }
+h1 { font-size: 1.5rem; }
+h2 { font-size: 1.25rem; margin-top: var(--space-5); }
+p { margin: 0 0 var(--space-3); max-width: var(--measure); }
+
+a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+a:hover { text-decoration-thickness: 2px; }
+
+.secondary { color: var(--text-secondary); }
+
+/* App header -------------------------------------------------------------- */
+.app-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--rule);
+}
+.app-header .wordmark { font-weight: 600; letter-spacing: -0.01em; color: var(--text); text-decoration: none; }
+.app-header nav { display: flex; gap: var(--space-3); }
+.app-header nav a { color: var(--text-secondary); text-decoration: none; font-size: 0.875rem; }
+.app-header nav a:hover { color: var(--text); }
+
+/* Tables ------------------------------------------------------------------ */
+table { width: 100%; border-collapse: collapse; margin: var(--space-3) 0 var(--space-5); font-size: 0.9375rem; }
+thead th {
+  text-align: left;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+tbody td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--rule); }
+tbody tr:hover td { background: #f3efe7; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+tfoot td { padding: var(--space-3); color: var(--text-secondary); font-size: 0.875rem; }
+td a, th a { text-decoration: none; }
+td a:hover { text-decoration: underline; }
+
+/* Status label + swatch (color is never the only signal) ------------------ */
+.status { display: inline-flex; align-items: center; gap: var(--space-1); white-space: nowrap; }
+.status::before { content: ""; width: 9px; height: 9px; border-radius: var(--radius); background: var(--swatch, var(--text-secondary)); flex: none; }
+.status--occupied { --swatch: var(--status-occupied); color: var(--status-occupied); }
+.status--on_notice { --swatch: var(--status-on-notice); color: var(--status-on-notice); }
+.status--on_notice_rented { --swatch: var(--status-on-notice-rented); color: var(--status-on-notice-rented); }
+.status--vacant_rented { --swatch: var(--status-vacant-rented); color: var(--status-vacant-rented); }
+.status--vacant_available { --swatch: var(--status-vacant-available); color: var(--status-vacant-available); }
+
+/* Forms ------------------------------------------------------------------- */
+form { max-width: var(--measure); }
+.rent-roll-filter { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-3); margin-bottom: var(--space-4); }
+label { display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: var(--space-1); }
+input[type="text"], input[type="date"], input[type="number"], select {
+  font: inherit;
+  padding: var(--space-2) var(--space-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--text);
+}
+input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.form-field { margin-bottom: var(--space-3); }
+input[type="submit"], button {
+  font: inherit;
+  cursor: pointer;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+}
+input[type="submit"]:hover, button:hover { background: #18492f; }
+
+/* Public listing page ----------------------------------------------------- */
+.listing { max-width: 760px; margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-7); }
+.listing-hero-art {
+  height: 280px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: flex-end;
+  padding: var(--space-4);
+  margin-bottom: var(--space-5);
+  background: linear-gradient(135deg, var(--art-a, var(--accent)), var(--art-b, var(--status-occupied)));
+}
+.listing-hero-art .name { color: #fff; font-size: 2.75rem; font-weight: 300; letter-spacing: -0.02em; line-height: 1.05; text-shadow: 0 1px 2px rgba(0,0,0,0.25); }
+.listing h1 { font-size: 2rem; font-weight: 300; letter-spacing: -0.02em; margin-bottom: var(--space-1); }
+.listing-address { color: var(--text-secondary); margin-bottom: var(--space-5); }
+.listing-availability { font-size: 1.25rem; color: var(--text); margin-bottom: var(--space-5); }
+.listing-availability strong { font-size: 2.75rem; font-weight: 300; color: var(--accent); font-variant-numeric: tabular-nums; display: inline-block; margin-right: var(--space-2); vertical-align: -0.1em; }
+.listing-description { color: var(--text); margin-bottom: var(--space-5); }
+.listing-amenities h2 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin-bottom: var(--space-3); }
+.listing-amenities ul { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-2) var(--space-4); }
+.listing-amenities li { padding: var(--space-2) 0; border-bottom: 1px solid var(--rule); }
+.listing img { max-width: 100%; border-radius: var(--radius); margin-top: var(--space-3); }
+
+/* Scaffold flash + misc --------------------------------------------------- */
+.flash { color: var(--accent); }
+.actions { display: flex; gap: var(--space-3); margin-top: var(--space-4); }

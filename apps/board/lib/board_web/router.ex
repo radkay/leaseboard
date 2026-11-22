@@ -14,6 +14,12 @@ defmodule BoardWeb.Router do
     plug :accepts, ["json"]
   end
 
+  # Health check for the platform (Render). No browser pipeline: it needs no
+  # session, CSRF or layout — just a fast 200.
+  scope "/", BoardWeb do
+    get "/healthz", HealthController, :show
+  end
+
   scope "/", BoardWeb do
     pipe_through :browser
 

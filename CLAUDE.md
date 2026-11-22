@@ -8,20 +8,19 @@ Show that agent-built code in Rails, Elixir/Phoenix and Sanity can meet a senior
 Write the code an experienced Rails or Elixir engineer would write, not merely code that passes tests.
 When there is an idiomatic way, use it. When you are unsure of the idiom, say so and explain the options.
 
-## Stop and ask Ron before you
-- Add any dependency (gem, hex package, npm package)
-- Create or change a migration, a database role or a Postgres view
-- Deploy, or change anything in Render, Sanity project settings or GitHub settings
-- Touch secrets or environment variables
-- Change or cut scope in SPEC.md, or deviate from the architecture
-- Delete files or rewrite git history
-
-Everything else (code, tests, docs inside the agreed scope) you may do without asking. Show the diff and test results.
+## Decision rights
+**Tier 1, Ron decides (stop and ask):** names other things depend on (databases, roles, connection targets, environment variable names, public routes); CONTRACT.md; this file (CLAUDE.md) and anything under `.claude/` — rule changes always need Ron; dependencies; platform plans and settings (Render, Sanity, GitHub); security posture (roles, grants, authentication); scope; deleting files or data; rewriting git history. Label the PR `needs-ron`, propose an answer, and continue with work that doesn't depend on it.
+**Tier 2, you decide and disclose:** internal structure, test approach, library usage, and **every default you accept from a generator, template or platform**. List each one under "Decisions made" in the PR.
+**Tier 3, you decide:** naming inside a function, formatting, small refactors.
 
 ## Hard rules
 - **Never attribute a decision or quote to Ron** unless he stated it verbatim in the current session. Otherwise leave "Ron:" blank for him to fill in.
 - **Synthetic data only.** Never use or reproduce code, data, client names or schemas from any employer or client.
-- **Rails is the only writer.** Phoenix connects as `board_reader` (SELECT only) and must never write.
+- **Rails is the only writer.** Phoenix connects as its environment's reader role (SELECT only) in every environment, including tests, and never writes.
+- Databases, roles and connection targets are defined only in CONTRACT.md's Environments table. Never create, rename or connect to one that isn't there.
+- If you find something that contradicts the design, stop and ask. Never work around it.
+- Verify platform and framework behavior against that platform's official documentation, and cite it. Another agent's file is not evidence.
+- When you add a custom mechanism where a built-in one may exist, name the built-in option and why it didn't fit, with a documentation link, in the PR.
 - **Status rules live in one place** (the Rails-owned view/query). Phoenix reads them and never re-implements them.
 - **No secrets in the repo.** Use `.env` locally (git-ignored) and Render env vars in production.
 - **Work in small steps.** One concern per commit. Tests and lint pass before every commit.

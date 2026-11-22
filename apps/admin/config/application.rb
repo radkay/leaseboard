@@ -17,9 +17,10 @@ module Admin
     config.autoload_lib(ignore: %w[assets tasks])
 
     # Dump the schema as SQL (db/structure.sql), not Ruby (db/schema.rb). The
-    # status view (unit_status_today) and the read-only board_reader role can't
-    # be represented in schema.rb, so the SQL format is the only faithful dump
-    # (D-008).
+    # status view (unit_status_today) and the SECURITY DEFINER status function
+    # can't be represented in schema.rb, so the SQL format is the only faithful
+    # dump (D-008). Roles and grants are not dumped at all; db/bootstrap and
+    # db/privileges.sql own them (CONTRACT.md).
     config.active_record.schema_format = :sql
 
     # Configuration for the application, engines, and railties goes here.

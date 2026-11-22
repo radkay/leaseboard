@@ -40,11 +40,18 @@ if config_env() == :dev do
 end
 
 if config_env() == :prod do
+  # The board is read-only (SPEC: "one writer"). In production DATABASE_URL must be
+  # the `reader_prod` connection string — a role with SELECT only (apps/admin owns
+  # and provisions it; CONTRACT.md Environments table). Ecto parses this URL into
+  # discrete host/user/password/db fields, which
+  # `Board.LeaseChangeListener.repo_connection_opts/0` reads back from
+  # `Board.Repo.config/0`, so the LISTEN connection uses the same settings and the
+  # same read-only role.
   database_url =
     System.get_env("DATABASE_URL") ||
       raise """
       environment variable DATABASE_URL is missing.
-      For example: ecto://USER:PASS@HOST/DATABASE
+      For example: ecto://reader_prod:PASS@HOST/leaseboard_prod
       """
 
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
@@ -75,6 +82,10 @@ if config_env() == :prod do
 
   config :board, BoardWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
+    # Only accept WebSocket/LiveView connections whose Origin is the production
+    # host. PHX_HOST must be set, or this list is "https://example.com" and every
+    # real request is rejected — which is the safe default.
+    check_origin: ["https://#{host}"],
     http: [
       # Enable IPv6 and bind on all interfaces.
       # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.

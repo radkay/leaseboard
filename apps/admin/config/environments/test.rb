@@ -20,13 +20,29 @@ Rails.application.configure do
 
   # Show full error reports.
   config.consider_all_requests_local = true
-  config.cache_store = :null_store
+  # A real store (not :null_store) so the Sanity 5-minute cache can be tested; the listing
+  # tests clear it between runs. Only the listing uses Rails.cache.
+  config.cache_store = :memory_store
 
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable
 
   # Disable request forgery protection in test environment.
   config.action_controller.allow_forgery_protection = false
+
+  # The test owner role (admin_test) is deliberately not a superuser, so it can't
+  # run Rails' post-fixture foreign-key verification (it UPDATEs pg_constraint).
+  # The FKs are DEFERRABLE INITIALLY DEFERRED, so fixtures load correctly and
+  # integrity is still enforced at commit for real writes — the verification pass
+  # is unnecessary here.
+  config.active_record.verify_foreign_keys_for_fixtures = false
+
+  # Don't let Rails auto-maintain the test schema: when structure.sql changes it
+  # would run db:test:prepare, which purges (drops and recreates) the database — and
+  # the non-superuser owner can't do that. test_helper.rb checks the schema is current
+  # instead and, if not, points at `bin/rails db:test:refresh` (which rebuilds the
+  # schema in place).
+  config.active_record.maintain_test_schema = false
 
   # Store uploaded files on the local file system in a temporary directory.
   config.active_storage.service = :test

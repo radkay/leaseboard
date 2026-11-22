@@ -1,0 +1,42 @@
+<% content_for :title, @property.name %>
+
+<article class="listing">
+  <% has_photos = @listing && Array(@listing["photos"]).any? { |p| Sanity.image_url(p["ref"]) } %>
+  <% unless has_photos %>
+    <div class="listing-hero-art" style="<%= listing_art_style(@property) %>" aria-hidden="true">
+      <span class="name"><%= @property.name %></span>
+    </div>
+  <% end %>
+
+  <h1><%= listing_headline(@property, @listing) %></h1>
+  <p class="listing-address"><%= @property.address %>, <%= @property.city %>, <%= @property.state %></p>
+
+  <p class="listing-availability">
+    <strong><%= @available_units %></strong>
+    <%= "unit".pluralize(@available_units) %> available now.
+  </p>
+
+  <div class="listing-description">
+    <%= listing_description(@property, @listing) %>
+  </div>
+
+  <% if @listing && @listing["amenities"].present? %>
+    <section class="listing-amenities">
+      <h2>Amenities</h2>
+      <ul>
+        <% @listing["amenities"].each do |amenity| %>
+          <li><%= amenity %></li>
+        <% end %>
+      </ul>
+    </section>
+  <% end %>
+
+  <% if @listing %>
+    <% Array(@listing["photos"]).each do |photo| %>
+      <% url = Sanity.image_url(photo["ref"]) %>
+      <% if url %>
+        <img src="<%= url %>" alt="<%= photo["alt"] %>" loading="lazy">
+      <% end %>
+    <% end %>
+  <% end %>
+</article>

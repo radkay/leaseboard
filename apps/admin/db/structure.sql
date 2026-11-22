@@ -98,7 +98,7 @@ CREATE TABLE public.leases (
     updated_at timestamp(6) without time zone NOT NULL,
     CONSTRAINT leases_end_after_start CHECK ((end_date > start_date)),
     CONSTRAINT leases_monthly_rent_positive CHECK ((monthly_rent > (0)::numeric)),
-    CONSTRAINT leases_status_valid CHECK (((status)::text = ANY ((ARRAY['pending'::character varying, 'active'::character varying, 'notice_given'::character varying, 'ended'::character varying])::text[])))
+    CONSTRAINT leases_status_valid CHECK (((status)::text = ANY (ARRAY[('pending'::character varying)::text, ('active'::character varying)::text, ('notice_given'::character varying)::text, ('ended'::character varying)::text])))
 );
 
 
@@ -156,7 +156,7 @@ CREATE VIEW public.lease_expirations_12m AS
                   WHERE ((nl.unit_id = l.unit_id) AND ((nl.status)::text = 'pending'::text) AND (nl.start_date > l.end_date)))) AS has_followon
            FROM (public.leases l
              JOIN public.units u ON ((u.id = l.unit_id)))
-          WHERE ((l.status)::text = ANY ((ARRAY['active'::character varying, 'notice_given'::character varying])::text[]))
+          WHERE ((l.status)::text = ANY (ARRAY[('active'::character varying)::text, ('notice_given'::character varying)::text]))
         )
  SELECT p.id AS property_id,
     m.month,
@@ -472,7 +472,7 @@ CREATE UNIQUE INDEX index_units_on_property_id_and_number ON public.units USING 
 --
 
 ALTER TABLE ONLY public.leases
-    ADD CONSTRAINT fk_rails_29210439a5 FOREIGN KEY (unit_id) REFERENCES public.units(id);
+    ADD CONSTRAINT fk_rails_29210439a5 FOREIGN KEY (unit_id) REFERENCES public.units(id) DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -480,7 +480,7 @@ ALTER TABLE ONLY public.leases
 --
 
 ALTER TABLE ONLY public.units
-    ADD CONSTRAINT fk_rails_d7df365ccb FOREIGN KEY (property_id) REFERENCES public.properties(id);
+    ADD CONSTRAINT fk_rails_d7df365ccb FOREIGN KEY (property_id) REFERENCES public.properties(id) DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -488,7 +488,7 @@ ALTER TABLE ONLY public.units
 --
 
 ALTER TABLE ONLY public.leases
-    ADD CONSTRAINT fk_rails_f7dbe61ba2 FOREIGN KEY (resident_id) REFERENCES public.residents(id);
+    ADD CONSTRAINT fk_rails_f7dbe61ba2 FOREIGN KEY (resident_id) REFERENCES public.residents(id) DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -500,7 +500,6 @@ SET search_path TO "$user", public;
 INSERT INTO "schema_migrations" (version) VALUES
 ('20261122012444'),
 ('20261122005325'),
-('20261122002440'),
 ('20261122001704'),
 ('20261122000537'),
 ('20261122000532'),

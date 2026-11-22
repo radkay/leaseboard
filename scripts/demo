@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Live occupancy-board demo: changes one lease through Rails's real lease actions
+# so the Phoenix board updates in front of you. This is what the README GIF films.
+# Setup and prerequisites: scripts/README.md.
+set -euo pipefail
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+admin_dir="$here/../apps/admin"
+
+# One database: the admin writes to leaseboard_dev (its development database) and
+# the board reads that same database as reader_dev (apps/board/config/dev.exs).
+# The demo runs the admin's own development connection — no DATABASE_URL override.
+echo "Board should be running:  (cd apps/board && mix phx.server)  →  http://localhost:4000"
+echo "Pause between steps: ${DEMO_PAUSE_SECONDS:-6}s (set DEMO_PAUSE_SECONDS to change)."
+echo
+
+cd "$admin_dir"
+exec bin/rails runner "$here/demo.rb"

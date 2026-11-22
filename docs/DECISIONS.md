@@ -113,6 +113,78 @@ One entry per decision. Newest at the bottom. Quote Ron's words when he makes th
 - **Why:** The board reads the Rails-owned views via `board_reader`; a schema/view change can break those reads, so the board tests must re-run. Studio doesn't read the database, so it's left out.
 - **Ron:**
 
+### D-017 · 2026-11-22 · APPROACH.md revised by Ron; agent-draft marker removed
+- **Decision:** Ron revised APPROACH.md (new lead, "What 'done' means", "Review and oversight", "Platform-native controls", "Scope notes"), removed every em dash, and removed the agent-draft marker.
+- **Options considered:** leave the agent draft as-is; Ron revises it (chosen).
+- **Why:** APPROACH.md is the reviewer-facing summary, so it should be in Ron's words, not an agent draft.
+- **Ron:**
+
+### D-018 · 2026-11-22 · Production cache store is `:memory_store`
+- **Decision:** Use Rails' in-process `:memory_store` as the cache in all environments, not Solid Cache or Redis.
+- **Options considered:** Solid Cache (the Rails 8 default); Redis / `mem_cache_store`; `:null_store`; `:memory_store` (chosen).
+- **Why:** Solid Cache was skipped at setup (D-008) and the app avoids Redis (it leans on Postgres LISTEN/NOTIFY, not a cache server). The only cached thing is non-critical, 5-minute, safe-to-recompute Sanity listing content, so a per-instance in-memory cache suffices for the single-instance demo; a multi-instance deployment would switch to a shared store. Test moved from `:null_store` to `:memory_store` so the caching test is meaningful.
+- **Ron:**
+
+### D-019 · 2026-11-22 · Keep the transport seam instead of adding a mocking gem
+- **Decision:** Minitest 6 dropped `Minitest::Mock`; rather than add `minitest-mock` (or Mocha), the Sanity tests use a transport seam (a swappable callable) to exercise the client with no network and no mocking gem.
+- **Options considered:** add `minitest-mock`; add Mocha; a dependency-free transport seam (chosen).
+- **Why:** The one network boundary is small and already injectable, so a seam avoids a new test dependency and keeps the suite's style consistent. Broader mocking later would be a needs-ron item.
+- **Ron:**
+
+### D-020 · 2026-11-22 · The board ships with no migrate entrypoint
+- **Decision:** Remove the generated Ecto migrate release task from the board; a read-only service ships no migrate entrypoint.
+- **Options considered:** keep the generated (unused) migrate task; remove it (chosen).
+- **Why:** The board never owns schema or writes (Rails is the only writer; CONTRACT.md), so a migrate entrypoint is dead code and a wrong signal. It can be restored if ever needed.
+- **Ron:**
+
+### D-021 · 2026-11-22 · Decision rights in three tiers; PR template; contract-name CI guard
+- **Decision:** Replace the flat "stop and ask" list with Tier 1 (Ron decides) / Tier 2 (decide and disclose, including accepted defaults) / Tier 3 (decide), add a PR template that requires disclosing those decisions, and define all databases/roles/targets only in CONTRACT.md's Environments table, enforced (plus "the board owns no migrations") by a stdlib-Ruby CI guard.
+- **Options considered:** keep the flat list; tiers without enforcement; tiers plus an automated guard (chosen).
+- **Why:** The #58 audit showed names drifting from framework defaults with nothing to catch it; tiers clarify who decides, and the guard makes "names live in one place" checkable in CI.
+- **Ron:**
+
+### D-022 · 2026-11-22 · Single database per environment; roles and grants out of migrations
+- **Decision:** One database per environment owned by a non-superuser Rails role; Phoenix reads as a per-environment reader role. A psql bootstrap (run as `postgres`) creates the database and both roles; one privileges SQL file grants the reader and locks down the SECURITY DEFINER function, applied after every database build via `Rake::Task#enhance`. Migrations never create roles or grant.
+- **Options considered:** keep role creation + grants in migrations (what #58 found: framework defaults, superuser everywhere); move them to a bootstrap + privileges script owned outside migrations (chosen).
+- **Why:** #58 showed two drifted databases and the board connecting as superuser everywhere but prod. Separating who creates databases and roles (`postgres`, once) from what the app does (own its data; read-only reader) gives least privilege, one source for grants, and an owner that never needs superuser.
+- **Ron:**
+
+### D-023 · 2026-11-22 · Environment naming scheme
+- **Decision:** The environments are `leaseboard_dev` / `leaseboard_test` / `leaseboard_prod`, owned by `admin_dev` / `admin_test` / `admin_prod` and read by `reader_dev` / `reader_test` / `reader_prod`; the superuser `postgres` is used only to create databases and roles. The names live only in CONTRACT.md's Environments table.
+- **Options considered:** keep the framework-default names (`admin_development`, `board_dev`); one deliberate scheme named in one place (chosen).
+- **Why:** The audit (#58) found names invented by generators, unmanaged. One scheme, defined once, makes the names reviewable and keeps a role out of any other environment's database.
+- **Ron:**
+
+### D-024 · 2026-11-22 · Rebuild the environments fresh rather than migrate an existing database
+- **Decision:** Build the per-environment databases from scratch (bootstrap plus schema load / migrate), discarding the old `admin_development` / `board_dev`, rather than migrating or renaming them in place.
+- **Options considered:** migrate / rename the existing databases in place; drop and rebuild fresh (chosen).
+- **Why:** Production had never been migrated, and the local databases carried drifted data and framework-default ownership. A fresh build gives a clean, reproducible baseline that matches the migrations exactly (verified by regenerating `structure.sql`).
+- **Ron:**
+
+### D-025 · 2026-11-22 · Foreign keys are deferrable so the non-superuser test owner can load fixtures
+- **Decision:** Define the three foreign keys `DEFERRABLE INITIALLY DEFERRED` (Rails' `foreign_key: { deferrable: :deferred }`), and set `verify_foreign_keys_for_fixtures = false` in test. FK violations are checked at transaction commit, not per statement.
+- **Options considered:** keep immediate FKs and make `admin_test` a superuser in test so Rails can disable referential integrity and run its pg_constraint FK verification; deferrable FKs plus turning the fixture FK-verification off (chosen).
+- **Why:** The owner is deliberately not a superuser (D-022). Rails loads fixtures by disabling referential integrity and verifying FKs via `pg_constraint`, both superuser-only. Deferrable FKs let fixtures insert in any order with integrity still enforced at commit for real writes, so no part of the stack needs superuser. No test relies on immediate FK failure.
+- **Ron:**
+
+### D-026 · 2026-11-22 · Paid Render plans for the demo period
+- **Decision:** Run `leaseboard_prod` on `0.1c-256mb` and both web services on `0.5c-512mb` (Render's current ids for the former Basic-256mb / Starter), billed per second.
+- **Options considered:** the free tier; paid plans for the demo period (chosen).
+- **Why:** A paid web plan is required for the admin's `preDeployCommand` (migrations plus privileges), which the free plan does not run; the paid database tier persists, where the free database expires after about 30 days. Downgrade or delete after the job search.
+- **Ron:**
+
+### D-027 · 2026-11-22 · MIT license
+- **Decision:** License the project under the MIT License, Copyright (c) 2026 Ron Radkay, with a one-line mention in the README.
+- **Options considered:** no license; a permissive license (MIT, chosen).
+- **Why:** A public exhibit repository should state its terms, and MIT is permissive and standard.
+- **Ron:**
+
+### D-028 · 2026-11-22 · Editorial-restraint design direction, tokens in one source
+- **Decision:** One token set (warm off-white, near-black, mid-gray, one deep-green accent, a muted colorblind-safe five-status palette, system fonts, 8px spacing, 2px max radius, thin rules not boxes), defined once in docs/DESIGN.md with measured WCAG-AA ratios and mirrored per app (admin and listing as Propshaft CSS custom properties; the board as a daisyUI theme).
+- **Options considered:** a CSS framework; per-app ad hoc styles; one shared token file consumed natively by each app (chosen).
+- **Why:** Restraint and one source keep the three surfaces consistent without a framework dependency, and recorded contrast ratios make accessibility checkable.
+- **Ron:**
+
 ## Versions (pin at setup)
 Checked 2026-11-21 against official release pages. Library versions (Rails, Phoenix, LiveView, Sanity) are the current releases. Lock files pin them when the apps are generated.
 

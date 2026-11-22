@@ -25,7 +25,7 @@ jobs:
       board: ${{ steps.filter.outputs.board }}
       studio: ${{ steps.filter.outputs.studio }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - id: filter
@@ -85,22 +85,30 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RAILS_ENV: test
-      DATABASE_URL: postgres://leaseboard:local_dev_only@localhost:5432
+      # The service's superuser, used only by db/bootstrap. No app connects as it.
+      POSTGRES_HOST: localhost
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: local_dev_only
+      # Owner/reader role passwords the bootstrap and database.yml read (CI placeholders).
+      ADMIN_DEV_PASSWORD: admin_dev_ci
+      ADMIN_TEST_PASSWORD: admin_test_ci
+      READER_DEV_PASSWORD: reader_dev_ci
+      READER_TEST_PASSWORD: reader_test_ci
     services:
       postgres:
         image: postgres:18.7
         env:
-          POSTGRES_USER: leaseboard
+          POSTGRES_USER: postgres
           POSTGRES_PASSWORD: local_dev_only
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U leaseboard"
+          --health-cmd "pg_isready -U postgres"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # setup-ruby reads the version file from its working-directory, but the
       # single .tool-versions lives at the repo root, so read the Ruby line from
       # there and pass it explicitly (one source of truth, D-004).
@@ -111,9 +119,32 @@ jobs:
           ruby-version: ${{ steps.ruby-version.outputs.value }}
           bundler-cache: true
           working-directory: apps/admin
-      - name: Create test database
+      # Create both environments' databases and roles as the superuser (postgres),
+      # exactly as the dev container does. The reader fitness test proves cross-
+      # environment isolation, so leaseboard_dev must exist to be refused from.
+      - name: Bootstrap databases and roles
+        run: |
+          db/bootstrap dev
+          db/bootstrap test
+      # Load the schema as the owner role. In development (and with no DATABASE_URL)
+      # Rails also loads the test database — ActiveRecord's each_current_configuration
+      # — so this one command loads both leaseboard_dev and leaseboard_test. No
+      # db:create/db:test:prepare: the owner is not a superuser and never drops or
+      # creates a database.
+      - name: Load schemas (development loads the test database too)
         working-directory: apps/admin
-        run: bin/rails db:create
+        run: bin/rails db:schema:load
+        env:
+          RAILS_ENV: development
+      # Apply the privileges script to each database (grants the reader, locks down
+      # the function, limits CONNECT). db:schema:load already ran it for leaseboard_dev
+      # via the hook; run it explicitly for both so the step is self-evident and
+      # idempotent.
+      - name: Apply privileges to both databases
+        working-directory: apps/admin
+        run: |
+          RAILS_ENV=development bin/rails db:privileges
+          RAILS_ENV=test bin/rails db:privileges
       - name: Tests
         working-directory: apps/admin
         run: bin/rails test
@@ -131,31 +162,37 @@ jobs:
     runs-on: ubuntu-latest
     env:
       MIX_ENV: test
+      # The service's superuser, used only by db/bootstrap and the one test-only
+      # role grant below. No app connects as it (CONTRACT.md).
       POSTGRES_HOST: localhost
-      POSTGRES_USER: leaseboard
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: local_dev_only
+      # Owner/reader role passwords the bootstrap and the board's test config read
+      # (CI placeholders; match the admin job's test values).
+      ADMIN_TEST_PASSWORD: admin_test_ci
+      READER_TEST_PASSWORD: reader_test_ci
     services:
       postgres:
         image: postgres:18.7
         env:
-          POSTGRES_USER: leaseboard
+          POSTGRES_USER: postgres
           POSTGRES_PASSWORD: local_dev_only
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U leaseboard"
+          --health-cmd "pg_isready -U postgres"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: erlef/setup-beam@v1
         id: beam
         with:
           version-file: .tool-versions
           version-type: strict
       - name: Cache deps and _build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             apps/board/deps
@@ -175,9 +212,35 @@ jobs:
       - name: Credo
         working-directory: apps/board
         run: mix credo --strict
+      # Rails owns the database and the board only reads it, so the board's test
+      # database is built exactly like dev/prod: create it and its roles as the
+      # superuser (db/bootstrap), load the Rails-owned schema as the owner
+      # admin_test, then apply the privileges script that grants reader_test its
+      # read surface. The board never creates or loads a database itself.
+      - name: Bootstrap the test database and roles
+        run: db/bootstrap test
+      - name: Load the schema as admin_test
+        run: |
+          PGPASSWORD="$ADMIN_TEST_PASSWORD" psql --no-psqlrc -v ON_ERROR_STOP=1 \
+            -h "$POSTGRES_HOST" -U admin_test -d leaseboard_test \
+            -f apps/admin/db/structure.sql
+      - name: Apply the reader privileges
+        run: |
+          PGPASSWORD="$ADMIN_TEST_PASSWORD" psql --no-psqlrc -v ON_ERROR_STOP=1 \
+            -h "$POSTGRES_HOST" -U admin_test -d leaseboard_test \
+            -v db=leaseboard_test -v owner=admin_test -v reader=reader_test \
+            -f apps/admin/db/privileges.sql
+      # The owner's membership in reader_test (so the read-only tests can SET LOCAL ROLE
+      # to the reader) is granted by `db/bootstrap test` above; no separate step here.
       - name: Tests
         working-directory: apps/board
         run: mix test
+
+      # Prove the production release compiles and assembles (not a Docker build).
+      # Catches prod-only compile/config breakage before a deploy.
+      - name: Production release compiles
+        working-directory: apps/board
+        run: MIX_ENV=prod mix release --overwrite
 
   studio:
     name: studio (Sanity)
@@ -188,8 +251,8 @@ jobs:
       # Sanity's CLI telemetry prompt is noise in CI.
       DO_NOT_TRACK: "1"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .tool-versions
           cache: npm
@@ -204,13 +267,25 @@ jobs:
         working-directory: studio
         run: npm run build
 
+  # Contract guard: every database/role named in app config must be in
+  # docs/CONTRACT.md's Environments table, and the board must own no migrations.
+  # Always runs (it validates config/docs, not one app), with the runner's
+  # system Ruby — the script is stdlib-only, so no setup step is needed.
+  contract-guard:
+    name: contract-guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check contract names and board migrations
+        run: ruby scripts/check_contract_names.rb
+
   # Single, always-running gate for the branch protection ruleset. Green only if
   # every app job succeeded or was skipped (no files for it changed); red if any
   # failed or was cancelled.
   ci-ok:
     name: ci-ok
     if: always()
-    needs: [changes, admin, board, studio]
+    needs: [changes, admin, board, studio, contract-guard]
     runs-on: ubuntu-latest
     steps:
       - name: Require all app jobs to pass or skip

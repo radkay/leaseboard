@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Create (idempotently) one environment's database and its two roles, as the
+# cluster superuser. Needs only psql, so the dev container and both CI jobs can
+# run it. Usage:
+#
+#   db/bootstrap <dev|test>
+#
+# Connects as the superuser from POSTGRES_USER/POSTGRES_PASSWORD on POSTGRES_HOST
+# (the dev container and CI both set these). Each role's password comes from a
+# clearly named environment variable; there are no secrets in this repo.
+set -euo pipefail
+
+env="${1:-}"
+case "$env" in
+  dev)
+    db=leaseboard_dev
+    owner=admin_dev
+    reader=reader_dev
+    owner_password="${ADMIN_DEV_PASSWORD:?ADMIN_DEV_PASSWORD is required}"
+    reader_password="${READER_DEV_PASSWORD:?READER_DEV_PASSWORD is required}"
+    grant_owner_membership=off
+    ;;
+  test)
+    db=leaseboard_test
+    owner=admin_test
+    reader=reader_test
+    owner_password="${ADMIN_TEST_PASSWORD:?ADMIN_TEST_PASSWORD is required}"
+    reader_password="${READER_TEST_PASSWORD:?READER_TEST_PASSWORD is required}"
+    # The read-only tests insert fixtures as admin_test, then SET LOCAL ROLE reader_test
+    # to run the board's real queries as the reader. The owner must be a member of the
+    # reader role for that switch; it is test only (never dev or prod).
+    grant_owner_membership=on
+    ;;
+  *)
+    echo "usage: db/bootstrap <dev|test>" >&2
+    exit 64
+    ;;
+esac
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+PGHOST="${POSTGRES_HOST:-db}" \
+PGUSER="${POSTGRES_USER:-postgres}" \
+PGPASSWORD="${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}" \
+PGDATABASE="postgres" \
+  psql --no-psqlrc -v ON_ERROR_STOP=1 \
+    -v db="$db" \
+    -v owner="$owner" \
+    -v owner_password="$owner_password" \
+    -v reader="$reader" \
+    -v reader_password="$reader_password" \
+    -v grant_owner_membership="$grant_owner_membership" \
+    -f "$here/bootstrap.sql"
+
+echo "bootstrap: $db ready (owner=$owner, reader=$reader)"

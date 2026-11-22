@@ -1,7 +1,8 @@
 # Rails ↔ Phoenix read contract
 
 This file fixes the read interface between Rails (the only writer) and the Phoenix
-board (read-only, connects as `board_reader`). It operationalizes D-003 (status as a
+board (read-only, connects as its environment's reader role — see the Environments
+table below). It operationalizes D-003 (status as a
 Rails-owned Postgres view) and D-005 (parallel agents split by app, with this contract
 as the boundary). It is derived from **SPEC §5**.
 
@@ -17,6 +18,23 @@ Status derivation is **as of a date**; the relations below are the "today" slice
 (as-of = `CURRENT_DATE`), which is what the live board renders. The admin rent roll
 runs the same rules for an arbitrary date; that is a Rails concern and not part of this
 read contract.
+
+---
+
+## Environments
+
+Databases, owner roles and reader roles are defined **only** here. No app config, script
+or migration may create, rename or connect to a database or role that is not in this table.
+
+| Environment | Database | Owner (Rails) | Reader (Phoenix) | Created by |
+|---|---|---|---|---|
+| Development | `leaseboard_dev` | `admin_dev` | `reader_dev` | bootstrap script, as `postgres` |
+| Test (local and CI) | `leaseboard_test` | `admin_test` | `reader_test` | bootstrap script, as `postgres` |
+| Production | `leaseboard_prod` | `admin_prod` | `reader_prod` | Render creates the database and `admin_prod`; Ron creates `reader_prod` with SQL at deploy |
+
+- No role can connect to another environment's database.
+- No app connects as `postgres`; it is used only to create databases and roles.
+- Grants and the function lockdown come from one privileges script, never from migrations.
 
 ---
 
