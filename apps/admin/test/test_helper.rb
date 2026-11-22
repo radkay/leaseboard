@@ -11,6 +11,26 @@ module ActiveSupport
     fixtures :all
 
     # Add more helper methods to be used by all tests here...
+
+    # Temporarily set ENV vars for the duration of a block, restoring the originals after.
+    # Used to drive Sanity's env-based configuration without touching global state.
+    def with_env(vars)
+      originals = vars.keys.index_with { |key| ENV[key] }
+      vars.each { |key, value| ENV[key] = value }
+      yield
+    ensure
+      originals.each { |key, value| value.nil? ? ENV.delete(key) : ENV[key] = value }
+    end
+
+    # Swap Sanity's network boundary for a stub callable (see Sanity.transport), restoring
+    # the real Net::HTTP transport after. Lets tests exercise the client with no network call
+    # and no mocking gem.
+    def with_sanity_transport(callable)
+      Sanity.transport = callable
+      yield
+    ensure
+      Sanity.transport = nil
+    end
   end
 end
 

@@ -14,6 +14,9 @@ Rails.application.routes.draw do
   resources :properties
 
   get "rent_roll", to: "rent_rolls#show", as: :rent_roll
+
+  # Public marketing page per property (outside basic auth).
+  get "listings/:slug", to: "listings#show", as: :listing
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
