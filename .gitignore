@@ -10,3 +10,5 @@
 **/node_modules/
 .DS_Store
 .claude/settings.local.json
+# Erlang/Elixir crash dumps (can land anywhere a BEAM process runs)
+erl_crash.dump
