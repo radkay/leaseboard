@@ -117,3 +117,67 @@ it shows the judgment behind the agents. Log every correction honestly. Newest a
 - **Problem:** correctness. Postgres checks a function's EXECUTE against the invoking role even when the function is called through a view, so a view's readers need EXECUTE on functions the view calls; revoking it from `board_reader` breaks the views.
 - **Fix:** The agent verified this in Postgres and escalated instead of guessing; Ron chose to keep one function, grant only `board_reader`, and return a lease id so a direct call leaks nothing.
 - **Caught by:** Agent A (verified in Postgres)
+
+### R-016 · 2026-11-22 · A test setup creating a cluster-wide role raced under parallel tests
+- **Where:** `lib/board_reader_role.rb` (`install!` / `create_or_update_role!`)
+- **Agent produced:** `install!` created `board_reader` with a check-then-create. Postgres roles are cluster-wide, but the suite runs in 4 parallel processes (each in its own database), so two could both pass the existence check and CREATE (a duplicate key on `pg_authid`) and, once it exists, concurrently ALTER it (`tuple concurrently updated`). It passed on PRs by chance and failed on main.
+- **Problem:** correctness / concurrency. The check-then-create isn't atomic, and the contention is cross-database. The review's suggested advisory lock wouldn't work: advisory locks are per-database, and roles are cluster-wide.
+- **Fix:** Retry the create-or-update on the transient `duplicate key` / `tuple concurrently updated` errors (the DO block also swallows a concurrent-CREATE duplicate), with a test that races role creation from two connections. The retry was later removed when roles moved out of migrations entirely (D-022).
+- **Caught by:** CI on main
+
+### R-017 · 2026-11-22 · The free-tier deploy plan would not have worked
+- **Where:** `render.yaml` / the deploy plan
+- **Agent produced:** A Render Blueprint on the free tier for the database and both web services.
+- **Problem:** correctness. Render's pre-deploy command (migrations + privileges) and shell need a paid plan, and a custom build command replaces Render's default `bundle install`. On the free tier the pre-deploy would not run at all.
+- **Fix:** A build script (`bin/render-build.sh`) that runs `bundle install` itself (#57), and the paid-plan decision (D-026).
+- **Caught by:** the review assistant, before any deploy
+
+### R-018 · 2026-11-22 · The listing controller queried a view directly, and Sanity fallbacks left no trace
+- **Where:** `ListingsController`, the availability count and the Sanity client
+- **Agent produced:** The controller derived the available-unit count by querying a status view directly, and Sanity failures fell back to placeholder copy with no log line.
+- **Problem:** maintainability. Business logic belongs in a model, not the controller, and a silent fallback hides a Sanity outage.
+- **Fix:** Moved the count to `Property#available_units`, and logged every Sanity fallback (#57).
+- **Caught by:** the review assistant
+
+### R-019 · 2026-11-22 · The guardrails held unattended
+- **Where:** `.claude/settings.json` deny rules
+- **Agent produced:** Overnight, an agent attempted a force-push and a remote branch deletion.
+- **Problem:** security. Both are destructive and outside the agreed workflow; the test was whether the deny rules hold with no human watching.
+- **Fix:** Both were blocked by the committed deny rules and the agent asked instead of working around them. No change needed; recorded as evidence the guardrails work unattended.
+- **Caught by:** the deny-rule guardrails
+
+### R-020 · 2026-11-22 · Development ran on two databases
+- **Where:** `apps/admin/config/database.yml`, `apps/board/config/dev.exs`, `apps/board/config/test.exs`, `.devcontainer/compose.yml`, CI
+- **Agent produced:** each framework's generator default was accepted. Rails used `admin_development`, Phoenix used `board_dev`, and the board connected as the superuser everywhere except production.
+- **Problem:** development and test didn't match the production design (one database, a read-only board). It went unnoticed for about 16 hours, from the Phoenix skeleton on Saturday afternoon through the overnight run. It was found in Ron's Sunday-morning pre-deploy review: the review assistant noted the demo script forcing both apps onto one database, Ron asked why, and the answer exposed the split. Ron treated it as a decision-rights failure rather than a config bug, and paused the deploy.
+- **Fix:** a read-only audit (#58); an Environments table in CONTRACT.md as the only place databases and roles are named; decision tiers and a PR template that require disclosing every accepted default (#61); and one database per environment with per-environment roles, built fresh (#62 to #70).
+- **Caught by:** the review assistant, in Ron's Sunday-morning pre-deploy review
+- **Ron:** "I realized I wasn't descriptive enough in the decisions. Nothing defined the environments, so the agents filled the gaps with defaults. We fixed the rule, not just the config, and paused the deploy until it was right."
+
+### R-021 · 2026-11-22 · An agent couldn't commit changes to its own rules
+- **Where:** `CLAUDE.md` / `.claude/`
+- **Agent produced:** Under an approved work order (#59), the agent edited CLAUDE.md's decision tiers and tried to commit the change.
+- **Problem:** security / self-modification. An agent editing and committing its own rules is exactly what the guardrails exist to stop, even under an approved task.
+- **Fix:** The auto-mode classifier blocked the commit; the agent stopped and asked, and Ron reviewed and committed it. CLAUDE.md and `.claude/` are now Tier 1.
+- **Caught by:** the auto-mode classifier
+
+### R-022 · 2026-11-22 · A dangerous runbook fallback in DEPLOY.md
+- **Where:** `docs/DEPLOY.md`
+- **Agent produced:** The runbook offered creating `reader_prod` from Render's dashboard, and asserted a Render permission without a citation.
+- **Problem:** security / correctness. A user added through the dashboard becomes the database's default user, which would repoint the admin's `DATABASE_URL` at the read-only role and break writes; and an uncited platform claim does not belong in a runbook.
+- **Fix:** Create `reader_prod` only with SQL as `admin_prod`, never from the dashboard, and stop and ask if `CREATE ROLE` is refused rather than assume the permission (#69).
+- **Caught by:** the review assistant
+
+### R-023 · 2026-11-22 · The metrics section credited Ron with the review assistant's catches
+- **Where:** `docs/APPROACH.md` (agent-loop metrics)
+- **Agent produced:** The metrics section attributed most REVIEW-LOG corrections to Ron's own review and claimed the review assistant caught none, and framed the estimate-versus-actual gap as a measured speedup.
+- **Problem:** correctness. The review assistant surfaced most corrections, with Ron deciding; and the senior-engineer figure is an estimate, not a measured time, so the gap is indicative, not a measured speedup.
+- **Fix:** Attribute from the log's "Caught by" lines, credit the review assistant, and state the estimate framing; #62's estimate matched its actual, so it is not an undershoot (metrics-fix PR).
+- **Caught by:** the review assistant
+
+### R-024 · 2026-11-22 · Questions for Ron merged without the needs-ron label
+- **Where:** process (PRs #62, #67)
+- **Agent produced:** #62 and #67 carried questions for Ron but no `needs-ron` label, and #67 auto-merged.
+- **Problem:** process. A PR with an open question for Ron should carry `needs-ron` and not auto-merge, so the question is not lost at merge.
+- **Fix:** Process reminder issued: any PR with a "Questions for Ron" section gets `needs-ron` and does not auto-merge.
+- **Caught by:** Ron's review
