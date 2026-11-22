@@ -1,5 +1,5 @@
 class LeasesController < ApplicationController
-  before_action :set_lease, only: %i[ show edit update destroy give_notice sign_renewal ]
+  before_action :set_lease, only: %i[ show edit update give_notice sign_renewal ]
 
   # GET /leases or /leases.json
   def index
@@ -47,15 +47,6 @@ class LeasesController < ApplicationController
     end
   end
 
-  # DELETE /leases/1 or /leases/1.json
-  def destroy
-    @lease.destroy!
-
-    respond_to do |format|
-      format.html { redirect_to leases_path, notice: "Lease was successfully destroyed.", status: :see_other }
-      format.json { head :no_content }
-    end
-  end
 
   # POST /leases/1/give_notice
   def give_notice

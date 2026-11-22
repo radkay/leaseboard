@@ -6,8 +6,8 @@ require "csv"
 # current_resident_id rather than a board view. Totals are computed from the loaded
 # rows, so the whole report is a single query (no N+1).
 class RentRoll
-  Row = Data.define(:unit_number, :bedrooms, :status, :resident_name,
-                    :monthly_rent, :market_rent, :lease_end_date)
+  Row = Data.define(:unit_id, :unit_number, :bedrooms, :status, :resident_name,
+                    :monthly_rent, :market_rent, :lease_start_date, :lease_end_date, :lease_id)
 
   OCCUPIED_STATUSES = %w[occupied on_notice on_notice_rented].freeze
 
@@ -21,9 +21,11 @@ class RentRoll
   def rows
     @rows ||= fetch.map do |r|
       Row.new(
-        unit_number: r["unit_number"], bedrooms: r["bedrooms"], status: r["status"],
-        resident_name: r["resident_name"], monthly_rent: r["current_monthly_rent"],
-        market_rent: r["market_rent"], lease_end_date: r["current_lease_end_date"]
+        unit_id: r["unit_id"], unit_number: r["unit_number"], bedrooms: r["bedrooms"],
+        status: r["status"], resident_name: r["resident_name"],
+        monthly_rent: r["current_monthly_rent"], market_rent: r["market_rent"],
+        lease_start_date: r["current_lease_start_date"], lease_end_date: r["current_lease_end_date"],
+        lease_id: r["current_lease_id"]
       )
     end
   end
@@ -76,8 +78,9 @@ class RentRoll
     # The status function returns the current lease id (not resident data); the rent roll,
     # as an admin query, joins that to residents itself for the name column.
     sql = ActiveRecord::Base.sanitize_sql_array([ <<~SQL, as_of, property.id ])
-      SELECT s.unit_number, s.bedrooms, s.status, s.market_rent,
-             s.current_monthly_rent, s.current_lease_end_date,
+      SELECT s.unit_id, s.unit_number, s.bedrooms, s.status, s.market_rent,
+             s.current_monthly_rent, s.current_lease_id,
+             cl.start_date AS current_lease_start_date, s.current_lease_end_date,
              CASE WHEN r.id IS NULL THEN NULL ELSE r.first_name || ' ' || r.last_name END AS resident_name
       FROM unit_status_as_of(?) s
       LEFT JOIN leases cl ON cl.id = s.current_lease_id
