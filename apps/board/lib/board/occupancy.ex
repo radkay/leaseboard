@@ -9,7 +9,7 @@ defmodule Board.Occupancy do
   """
   import Ecto.Query
 
-  alias Board.Occupancy.{Property, PropertyKpi, UnitStatus}
+  alias Board.Occupancy.{LeaseExpiration, Property, PropertyKpi, UnitStatus, UnitTypeKpi}
   alias Board.Repo
 
   @doc """
@@ -35,6 +35,24 @@ defmodule Board.Occupancy do
       from u in UnitStatus,
         where: u.property_id == ^property_id,
         order_by: u.unit_number
+    )
+  end
+
+  @doc "A property's KPIs broken out by bedroom count, ordered studio-first."
+  def list_unit_type_kpis(property_id) do
+    Repo.all(
+      from k in UnitTypeKpi,
+        where: k.property_id == ^property_id,
+        order_by: k.bedrooms
+    )
+  end
+
+  @doc "A property's 12-month lease-expirations series, ordered by month."
+  def list_lease_expirations(property_id) do
+    Repo.all(
+      from e in LeaseExpiration,
+        where: e.property_id == ^property_id,
+        order_by: e.month
     )
   end
 end
