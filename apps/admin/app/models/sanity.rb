@@ -48,9 +48,19 @@ module Sanity
 
   def fetch_listing(slug)
     body = transport.call(query_uri(slug))
-    body && JSON.parse(body)["result"]
+    result = body && JSON.parse(body)["result"]
+    warn_fallback(slug, "no content returned") if result.nil?
+    result
   rescue JSON::ParserError
+    warn_fallback(slug, "malformed JSON")
     nil
+  end
+
+  # Sanity was configured and we tried it, but got nothing usable — the caller will render
+  # fallback copy from the property record. Worth a warning so an outage is visible in logs;
+  # the unconfigured case is silent (expected, and would otherwise warn on every request).
+  def warn_fallback(slug, reason)
+    Rails.logger.warn("[Sanity] #{reason} for listing #{slug.inspect}; falling back to the property record")
   end
 
   # Build a Sanity CDN image URL from an asset ref like "image-abc123-800x600-jpg".

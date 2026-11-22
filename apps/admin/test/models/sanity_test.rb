@@ -56,6 +56,22 @@ class SanityTest < ActiveSupport::TestCase
     end
   end
 
+  test "fetch_listing logs a warning when it falls back" do
+    logs = StringIO.new
+    original = Rails.logger
+    Rails.logger = ActiveSupport::Logger.new(logs)
+
+    with_env(CONFIG) do
+      with_sanity_transport(->(_uri) { nil }) { Sanity.fetch_listing("maple-court") }
+      with_sanity_transport(->(_uri) { "not json" }) { Sanity.fetch_listing("riverside-lofts") }
+    end
+
+    assert_match(/no content returned for listing "maple-court"/, logs.string)
+    assert_match(/malformed JSON for listing "riverside-lofts"/, logs.string)
+  ensure
+    Rails.logger = original
+  end
+
   test "the default transport returns nil instead of raising on a dead connection" do
     # 127.0.0.1:1 refuses immediately — a local socket, never a call to Sanity — so this
     # exercises http_get's rescue offline and deterministically.

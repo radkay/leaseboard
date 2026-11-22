@@ -9,13 +9,15 @@ service (or `render.yaml`) should use — Render itself is configured by Agent B
 
 | Step | Command |
 | --- | --- |
-| **Build** | `SECRET_KEY_BASE_DUMMY=1 bin/rails assets:precompile` |
+| **Build** | `./bin/render-build.sh` |
 | **Release** (pre-deploy, runs each deploy) | `bin/rails db:migrate` |
 | **Start** | `bin/rails server` |
 
 Notes:
-- The build precompiles assets with Propshaft. `SECRET_KEY_BASE_DUMMY=1` lets the build
-  boot the production environment without a real secret (none is needed to compile assets).
+- `bin/render-build.sh` runs `bundle install` (Render's custom build command replaces its
+  default `bundle install`, so we run it ourselves), then precompiles and cleans assets with
+  Propshaft. `SECRET_KEY_BASE_DUMMY=1` lets the build boot the production environment without
+  a real secret (none is needed to compile assets).
 - `bin/rails server` reads `config/puma.rb`, which binds to `PORT` (Render sets it) and
   `RAILS_MAX_THREADS` threads.
 - The release step runs migrations before the new version takes traffic. One migration

@@ -4,7 +4,7 @@ class ListingsController < ApplicationController
   def show
     @property = Property.find_by!(sanity_slug: params[:slug])
     @listing = Sanity.listing(@property.sanity_slug)
-    @available_units = available_units_for(@property)
+    @available_units = @property.available_units
   end
 
   private
@@ -12,13 +12,5 @@ class ListingsController < ApplicationController
   # Served outside basic auth.
   def public_request?
     true
-  end
-
-  def available_units_for(property)
-    ActiveRecord::Base.connection.select_value(
-      ActiveRecord::Base.sanitize_sql_array(
-        [ "SELECT available_units FROM property_kpis_today WHERE property_id = ?", property.id ]
-      )
-    ).to_i
   end
 end
