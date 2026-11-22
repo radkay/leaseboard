@@ -1,0 +1,22 @@
+<%# The sign-new-lease form, inside the Turbo Frame so it can be re-rendered with
+    errors (validation-error path) or reset (success path) without a page reload. %>
+<%= turbo_frame_tag "new_lease_form" do %>
+  <% if errors.present? %>
+    <ul class="form-errors">
+      <% errors.each do |message| %><li><%= message %></li><% end %>
+    </ul>
+  <% end %>
+
+  <%= form_with url: sign_new_lease_unit_path(unit), method: :post do |form| %>
+    <%= form.fields_for :resident do |resident| %>
+      <div class="form-field"><%= resident.label :first_name %><%= resident.text_field :first_name, required: true %></div>
+      <div class="form-field"><%= resident.label :last_name %><%= resident.text_field :last_name, required: true %></div>
+      <div class="form-field"><%= resident.label :email %><%= resident.email_field :email, required: true %></div>
+      <div class="form-field"><%= resident.label :phone %><%= resident.telephone_field :phone, required: true %></div>
+    <% end %>
+    <div class="form-field"><%= form.label :start_date %><%= form.date_field :start_date, required: true %></div>
+    <div class="form-field"><%= form.label :end_date %><%= form.date_field :end_date, required: true %></div>
+    <div class="form-field"><%= form.label :monthly_rent %><%= form.number_field :monthly_rent, step: :any, required: true %></div>
+    <%= form.submit "Sign new lease" %>
+  <% end %>
+<% end %>
