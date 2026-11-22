@@ -1,86 +1,40 @@
-# PostgreSQL. Versions 9.5 and up are supported.
+# PostgreSQL. All databases, owner roles and reader roles are defined in
+# docs/CONTRACT.md's Environments table and created by db/bootstrap (as the
+# `postgres` superuser) — never here and never by a migration. Rails connects as
+# the environment's owner role; no app ever connects as `postgres`.
 #
-# Install the pg driver:
-#   gem install pg
-# On macOS with Homebrew:
-#   gem install pg -- --with-pg-config=/opt/homebrew/bin/pg_config
-# On Windows:
-#   gem install pg
-#       Choose the win32 build.
-#       Install PostgreSQL and put its /bin directory on your path.
-#
-# Configure Using Gemfile
-# gem "pg"
-#
+# Passwords come from the environment (never committed). `reader_role` is a custom
+# key (not a connection parameter) read by db:privileges to grant the reader.
 default: &default
   adapter: postgresql
   encoding: unicode
-  # For details on connection pooling, see Rails configuration guide
+  host: <%= ENV.fetch("POSTGRES_HOST", "db") %>
+  port: <%= ENV.fetch("POSTGRES_PORT", 5432) %>
+  # For details on connection pooling, see the Rails configuration guide:
   # https://guides.rubyonrails.org/configuring.html#database-pooling
   max_connections: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
 
-
 development:
   <<: *default
-  database: admin_development
+  database: leaseboard_dev
+  username: admin_dev
+  password: <%= ENV["ADMIN_DEV_PASSWORD"] %>
+  reader_role: reader_dev
 
-  # The specified database role being used to connect to PostgreSQL.
-  # To create additional roles in PostgreSQL see `$ createuser --help`.
-  # When left blank, PostgreSQL will use the default role. This is
-  # the same name as the operating system user running Rails.
-  #username: admin
-
-  # The password associated with the PostgreSQL role (username).
-  #password:
-
-  # Connect on a TCP socket. Omitted by default since the client uses a
-  # domain socket that doesn't need configuration. Windows does not have
-  # domain sockets, so uncomment these lines.
-  #host: localhost
-
-  # The TCP port the server listens on. Defaults to 5432.
-  # If your server runs on a different port number, change accordingly.
-  #port: 5432
-
-  # Schema search path. The server defaults to $user,public
-  #schema_search_path: myapp,sharedapp,public
-
-  # Minimum log levels, in increasing order:
-  #   debug5, debug4, debug3, debug2, debug1,
-  #   log, notice, warning, error, fatal, and panic
-  # Defaults to warning.
-  #min_messages: notice
-
-# Warning: The database defined as "test" will be erased and
-# re-generated from your development database when you run "rake".
-# Do not set this db to the same as development or production.
+# Warning: The database defined as "test" will be erased and re-generated from your
+# development database when you run "rake". Do not set this db to the same as
+# development or production.
 test:
   <<: *default
-  database: admin_test
+  database: leaseboard_test
+  username: admin_test
+  password: <%= ENV["ADMIN_TEST_PASSWORD"] %>
+  reader_role: reader_test
 
-# As with config/credentials.yml, you never want to store sensitive information,
-# like your database password, in your source code. If your source code is
-# ever seen by anyone, they now have access to your database.
-#
-# Instead, provide the password or a full connection URL as an environment
-# variable when you boot the app. For example:
-#
-#   DATABASE_URL="postgres://myuser:mypass@localhost/somedatabase"
-#
-# If the connection URL is provided in the special DATABASE_URL environment
-# variable, Rails will automatically merge its configuration values on top of
-# the values provided in this file. Alternatively, you can specify a connection
-# URL environment variable explicitly:
-#
-#   production:
-#     url: <%= ENV["MY_APP_DATABASE_URL"] %>
-#
-# Read https://guides.rubyonrails.org/configuring.html#configuring-a-database
-# for a full overview on how database connection configuration can be specified.
-#
+# Render supplies DATABASE_URL (the admin_prod owner connection). reader_prod is
+# created by Ron with SQL before the first deploy (CONTRACT.md); db:privileges
+# grants it on every release.
 production:
   <<: *default
-  # The whole connection comes from DATABASE_URL (Render provides it). Rails would merge
-  # DATABASE_URL over this file anyway; setting url explicitly keeps the connection details
-  # entirely in the environment, with nothing hard-coded here.
   url: <%= ENV["DATABASE_URL"] %>
+  reader_role: reader_prod

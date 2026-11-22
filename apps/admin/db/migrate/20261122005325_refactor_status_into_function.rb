@@ -25,7 +25,7 @@ class RefactorStatusIntoFunction < ActiveRecord::Migration[8.1]
       )
       LANGUAGE sql STABLE
       -- SECURITY DEFINER so the function reads the base tables with its owner's rights,
-      -- the same way a view does. This lets board_reader read the views (which call it)
+      -- the same way a view does. This lets the reader role read the views (which call it)
       -- without any grant on units/leases. search_path is pinned for safety.
       SECURITY DEFINER SET search_path = pg_catalog, public
       AS $func$

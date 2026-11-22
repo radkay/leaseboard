@@ -1,28 +1,24 @@
 class LockDownStatusFunction < ActiveRecord::Migration[8.1]
-  # unit_status_as_of is SECURITY DEFINER, so leaving EXECUTE to PUBLIC lets any role call
-  # it directly with the owner's rights (R-012). Postgres checks a function's EXECUTE against
-  # the invoking role even through a view, so board_reader *must* keep EXECUTE to read the
-  # views (R-015). We therefore REVOKE from PUBLIC and GRANT only to board_reader, and make a
-  # direct call harmless: the function exposes the current lease's **id** (not the resident's),
-  # so it returns no personal data. The rent roll joins that lease id to residents itself.
+  # Reshape unit_status_as_of to return the current lease's **id** instead of the
+  # resident's, so a direct call exposes no personal data (R-012); the rent roll joins
+  # that lease id to residents itself. Recreating the function changes its return type,
+  # so the dependent views are rebuilt too.
   #
-  # Recreating the function changes its return type, so the dependent views are rebuilt too;
-  # that also re-grants board_reader's SELECT on them, which task 8 had dropped (R-014).
+  # The lockdown itself — REVOKE EXECUTE FROM PUBLIC, GRANT only to the reader role, and
+  # the reader's SELECT on the views — is not done here. Grants and the function lockdown
+  # live in one privileges script (db/privileges.sql), applied after every database
+  # build, never in migrations (CONTRACT.md). The function stays SECURITY DEFINER; the
+  # privileges script is what makes a direct call by PUBLIC impossible.
   def up
     drop_status_objects
     create_function(id_column: "current_lease_id bigint", id_select: "cl.id")
-    execute "REVOKE EXECUTE ON FUNCTION unit_status_as_of(date) FROM PUBLIC"
-    grant_execute_to_board_reader
     create_status_views
-    BoardReaderRole.grant_reads!(connection)
   end
 
   def down
     drop_status_objects
     create_function(id_column: "current_resident_id bigint", id_select: "cl.resident_id")
-    execute "GRANT EXECUTE ON FUNCTION unit_status_as_of(date) TO PUBLIC"
     create_status_views
-    BoardReaderRole.grant_reads!(connection)
   end
 
   private
@@ -32,12 +28,6 @@ class LockDownStatusFunction < ActiveRecord::Migration[8.1]
     execute "DROP VIEW property_kpis_today"
     execute "DROP VIEW unit_status_today"
     execute "DROP FUNCTION unit_status_as_of(date)"
-  end
-
-  def grant_execute_to_board_reader
-    return unless connection.select_value("SELECT 1 FROM pg_roles WHERE rolname = 'board_reader'")
-
-    execute "GRANT EXECUTE ON FUNCTION unit_status_as_of(date) TO board_reader"
   end
 
   def create_function(id_column:, id_select:)

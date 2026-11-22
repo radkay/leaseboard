@@ -18,16 +18,16 @@ The Blueprint (`render.yaml` at the repo root) declares three resources: the
 
 Generate and set these in the dashboard (each service has its own **Environment**):
 
-**Shared value — `BOARD_READER_PASSWORD`.** Pick a strong password. The admin's
-migration provisions the read-only `board_reader` role with it, and the board
-connects with the **same** value (step 4). Set it on **leaseboard-admin** now.
+**Shared value — the `reader_prod` password.** Pick a strong password. You create the
+read-only `reader_prod` role with it before the first deploy (step 3), and the board
+connects with the **same** value (step 4). It is **not** an admin variable: the admin's
+`db:privileges` grants `reader_prod` without ever needing its password.
 
 **leaseboard-admin:**
 
 | Variable | How to get it |
 |---|---|
 | `SECRET_KEY_BASE` | `cd apps/admin && bin/rails secret` |
-| `BOARD_READER_PASSWORD` | the shared value above |
 | `ADMIN_USERNAME`, `ADMIN_PASSWORD` | your choice — HTTP basic auth for the admin |
 | `SANITY_PROJECT_ID`, `SANITY_DATASET`, `SANITY_API_VERSION` | optional; from your Sanity project. Unset ⇒ the listing page shows fallback copy and makes no network call |
 
@@ -39,23 +39,36 @@ connects with the **same** value (step 4). Set it on **leaseboard-admin** now.
 |---|---|
 | `SECRET_KEY_BASE` | `cd apps/board && mix phx.gen.secret` (a **different** value from the admin's) |
 | `PHX_HOST` | the board service's hostname, e.g. `leaseboard-board.onrender.com` (Render shows it after the service is created). Used for `check_origin` and the canonical URL |
-| `DATABASE_URL` | the `board_reader` connection string — build it in step 4 |
+| `DATABASE_URL` | the `reader_prod` connection string — build it in step 4 |
 
-## 3. First deploy (admin + database)
+## 3. Create `reader_prod`, then first deploy (admin + database)
 
-Let the Blueprint deploy. On the admin, the **pre-deploy** command runs
-`bin/rails db:migrate`, which creates the schema, the status/KPI views, and the
-`board_reader` role (using `BOARD_READER_PASSWORD`). The board service may stay
-unhealthy until step 4 — that's expected.
+The board connects read-only as `reader_prod`. Migrations never create roles
+(CONTRACT.md), so create it once, by hand, before the first deploy. Open
+**leaseboard-db** → **PSQL Command** (it connects as the database's `admin_prod`
+owner) and run:
 
-## 4. Point the board at `board_reader`
+```sql
+CREATE ROLE reader_prod LOGIN PASSWORD '<the reader_prod password>';
+```
+
+(This needs the owner to have `CREATEROLE`; Render's primary user does. If it is
+refused, create `reader_prod` from the Render dashboard instead.)
+
+Then let the Blueprint deploy. On the admin, the **pre-deploy** command runs
+`bin/rails db:migrate`, which creates the schema and the status/KPI views and then
+applies `apps/admin/db/privileges.sql` (via the `db:privileges` hook) — granting
+`reader_prod` exactly the board's read surface and locking down the status function.
+The board service may stay unhealthy until step 4 — that's expected.
+
+## 4. Point the board at `reader_prod`
 
 Open **leaseboard-db** and copy its **Internal Database URL** (that's the owner
 connection — host, port and database name). Build the board's `DATABASE_URL` by
 swapping the user and password for the read-only role:
 
 ```
-postgres://board_reader:<BOARD_READER_PASSWORD>@<internal-host>:<port>/<database>
+postgres://reader_prod:<the reader_prod password>@<internal-host>:<port>/<database>
 ```
 
 Set it as `DATABASE_URL` on **leaseboard-board** and trigger a redeploy. Use the

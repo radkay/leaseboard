@@ -22,6 +22,9 @@ services:
         condition: service_healthy
 
   db:
+    # The cluster superuser is `postgres` (POSTGRES_USER in .env.example), used only
+    # by db/bootstrap to create the per-environment databases and roles. No app ever
+    # connects as it (CONTRACT.md).
     # Render managed Postgres offers majors 13-18 (not 19); match the newest.
     image: postgres:18.7
     restart: unless-stopped
