@@ -80,6 +80,7 @@ test:
 #
 production:
   <<: *default
-  database: admin_production
-  username: admin
-  password: <%= ENV["ADMIN_DATABASE_PASSWORD"] %>
+  # The whole connection comes from DATABASE_URL (Render provides it). Rails would merge
+  # DATABASE_URL over this file anyway; setting url explicitly keeps the connection details
+  # entirely in the environment, with nothing hard-coded here.
+  url: <%= ENV["DATABASE_URL"] %>

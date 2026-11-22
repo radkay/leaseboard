@@ -1,5 +1,8 @@
 require "faker"
 
+# Refuse to wipe and reseed a production database unless explicitly allowed (see SeedReset).
+SeedReset.guard!
+
 # Deterministic demo data: 3 properties, ~150 units, ~90% occupied, with a realistic
 # mix of on-notice, pre-leased and available units. Residents are clearly synthetic
 # (Faker names, example.com emails, 555 phones). Re-running reproduces the same data.
