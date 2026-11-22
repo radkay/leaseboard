@@ -1,7 +1,9 @@
 defmodule Board.OccupancyTest do
-  # Reads the Rails-owned views through the schemas. Data is seeded with raw SQL
-  # (the board has no write schemas); the views derive status in the same
-  # transaction, so the sandbox sees it.
+  # Reads the Rails-owned views through the schemas. Fixtures are inserted as the
+  # owner `admin_test` (raw SQL — the board has no write schemas); the board's real
+  # query functions are then run under `as_reader/1` (SET LOCAL ROLE reader_test),
+  # so they execute with only the reader's grants, in the same sandbox transaction
+  # that holds the uncommitted fixtures.
   use Board.DataCase, async: true
 
   alias Board.Occupancy
@@ -28,7 +30,7 @@ defmodule Board.OccupancyTest do
   test "list_properties_with_kpis/0 returns properties with their KPI row", %{
     property_id: property_id
   } do
-    assert [property] = Occupancy.list_properties_with_kpis()
+    [property] = as_reader(fn -> Occupancy.list_properties_with_kpis() end)
     assert property.id == property_id
     assert property.name == "Maple Court"
     assert property.sanity_slug == "maple-court"
@@ -45,17 +47,21 @@ defmodule Board.OccupancyTest do
   test "get_property!/1 loads the property and get_property_kpis/1 its KPIs", %{
     property_id: property_id
   } do
-    assert Occupancy.get_property!(property_id).name == "Maple Court"
-    assert Occupancy.get_property_kpis(property_id).total_units == 2
+    as_reader(fn ->
+      assert Occupancy.get_property!(property_id).name == "Maple Court"
+      assert Occupancy.get_property_kpis(property_id).total_units == 2
+      assert Occupancy.get_property_kpis(-1) == nil
+    end)
 
-    assert_raise Ecto.NoResultsError, fn -> Occupancy.get_property!(-1) end
-    assert Occupancy.get_property_kpis(-1) == nil
+    assert_raise Ecto.NoResultsError, fn ->
+      as_reader(fn -> Occupancy.get_property!(-1) end)
+    end
   end
 
   test "list_unit_statuses/1 maps the status view, ordered by unit number", %{
     property_id: property_id
   } do
-    assert [occupied, vacant] = Occupancy.list_unit_statuses(property_id)
+    [occupied, vacant] = as_reader(fn -> Occupancy.list_unit_statuses(property_id) end)
 
     assert occupied.unit_number == "101"
     assert occupied.status == "occupied"

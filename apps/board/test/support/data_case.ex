@@ -43,6 +43,32 @@ defmodule Board.DataCase do
   end
 
   @doc """
+  Runs `fun` with the connection switched to the read-only `reader_test` role for
+  the rest of the current (sandboxed) transaction, then resets it.
+
+  The test harness connects and inserts fixtures as the owner `admin_test`; the
+  board's real query functions are run inside `as_reader/1` so they execute with
+  only the reader's grants (SELECT on the views, EXECUTE on the status function —
+  no base tables, no writes). That is the board's read-only guarantee, exercised
+  against the actual role rather than a stand-in.
+
+  `SET LOCAL ROLE` is scoped to the surrounding transaction (the sandbox's), so it
+  cannot leak across the pooled connection; `RESET ROLE` restores the owner for any
+  later fixture work in the same test. `admin_test` is granted membership in
+  `reader_test` in the test environment only, which is what lets it switch.
+  See the Postgres manual: https://www.postgresql.org/docs/current/sql-set-role.html
+  """
+  def as_reader(fun) when is_function(fun, 0) do
+    Board.Repo.query!("SET LOCAL ROLE reader_test")
+
+    try do
+      fun.()
+    after
+      Board.Repo.query!("RESET ROLE")
+    end
+  end
+
+  @doc """
   A helper that transforms changeset errors into a map of messages.
 
       assert {:error, changeset} = Accounts.create_user(%{password: "short"})

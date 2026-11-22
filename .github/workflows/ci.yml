@@ -162,19 +162,25 @@ jobs:
     runs-on: ubuntu-latest
     env:
       MIX_ENV: test
+      # The service's superuser, used only by db/bootstrap and the one test-only
+      # role grant below. No app connects as it (CONTRACT.md).
       POSTGRES_HOST: localhost
-      POSTGRES_USER: leaseboard
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: local_dev_only
+      # Owner/reader role passwords the bootstrap and the board's test config read
+      # (CI placeholders; match the admin job's test values).
+      ADMIN_TEST_PASSWORD: admin_test_ci
+      READER_TEST_PASSWORD: reader_test_ci
     services:
       postgres:
         image: postgres:18.7
         env:
-          POSTGRES_USER: leaseboard
+          POSTGRES_USER: postgres
           POSTGRES_PASSWORD: local_dev_only
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U leaseboard"
+          --health-cmd "pg_isready -U postgres"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -206,6 +212,32 @@ jobs:
       - name: Credo
         working-directory: apps/board
         run: mix credo --strict
+      # Rails owns the database and the board only reads it, so the board's test
+      # database is built exactly like dev/prod: create it and its roles as the
+      # superuser (db/bootstrap), load the Rails-owned schema as the owner
+      # admin_test, then apply the privileges script that grants reader_test its
+      # read surface. The board never creates or loads a database itself.
+      - name: Bootstrap the test database and roles
+        run: db/bootstrap test
+      - name: Load the schema as admin_test
+        run: |
+          PGPASSWORD="$ADMIN_TEST_PASSWORD" psql --no-psqlrc -v ON_ERROR_STOP=1 \
+            -h "$POSTGRES_HOST" -U admin_test -d leaseboard_test \
+            -f apps/admin/db/structure.sql
+      - name: Apply the reader privileges
+        run: |
+          PGPASSWORD="$ADMIN_TEST_PASSWORD" psql --no-psqlrc -v ON_ERROR_STOP=1 \
+            -h "$POSTGRES_HOST" -U admin_test -d leaseboard_test \
+            -v db=leaseboard_test -v owner=admin_test -v reader=reader_test \
+            -f apps/admin/db/privileges.sql
+      # Test only: let the owner switch to the reader with SET LOCAL ROLE, so the
+      # read-only tests run the board's real queries as reader_test (Task 1 step 3).
+      # Needs the superuser and is never done in dev or prod.
+      - name: Grant the owner membership in the reader role (test only)
+        run: |
+          PGPASSWORD="$POSTGRES_PASSWORD" psql --no-psqlrc -v ON_ERROR_STOP=1 \
+            -h "$POSTGRES_HOST" -U postgres -d leaseboard_test \
+            -c 'GRANT reader_test TO admin_test'
       - name: Tests
         working-directory: apps/board
         run: mix test
