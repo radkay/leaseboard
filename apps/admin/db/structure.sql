@@ -472,7 +472,7 @@ CREATE UNIQUE INDEX index_units_on_property_id_and_number ON public.units USING 
 --
 
 ALTER TABLE ONLY public.leases
-    ADD CONSTRAINT fk_rails_29210439a5 FOREIGN KEY (unit_id) REFERENCES public.units(id);
+    ADD CONSTRAINT fk_rails_29210439a5 FOREIGN KEY (unit_id) REFERENCES public.units(id) DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -480,7 +480,7 @@ ALTER TABLE ONLY public.leases
 --
 
 ALTER TABLE ONLY public.units
-    ADD CONSTRAINT fk_rails_d7df365ccb FOREIGN KEY (property_id) REFERENCES public.properties(id);
+    ADD CONSTRAINT fk_rails_d7df365ccb FOREIGN KEY (property_id) REFERENCES public.properties(id) DEFERRABLE INITIALLY DEFERRED;
 
 
 --
@@ -488,7 +488,7 @@ ALTER TABLE ONLY public.units
 --
 
 ALTER TABLE ONLY public.leases
-    ADD CONSTRAINT fk_rails_f7dbe61ba2 FOREIGN KEY (resident_id) REFERENCES public.residents(id);
+    ADD CONSTRAINT fk_rails_f7dbe61ba2 FOREIGN KEY (resident_id) REFERENCES public.residents(id) DEFERRABLE INITIALLY DEFERRED;
 
 
 --
