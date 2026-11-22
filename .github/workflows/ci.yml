@@ -210,13 +210,25 @@ jobs:
         working-directory: studio
         run: npm run build
 
+  # Contract guard: every database/role named in app config must be in
+  # docs/CONTRACT.md's Environments table, and the board must own no migrations.
+  # Always runs (it validates config/docs, not one app), with the runner's
+  # system Ruby — the script is stdlib-only, so no setup step is needed.
+  contract-guard:
+    name: contract-guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check contract names and board migrations
+        run: ruby scripts/check_contract_names.rb
+
   # Single, always-running gate for the branch protection ruleset. Green only if
   # every app job succeeded or was skipped (no files for it changed); red if any
   # failed or was cancelled.
   ci-ok:
     name: ci-ok
     if: always()
-    needs: [changes, admin, board, studio]
+    needs: [changes, admin, board, studio, contract-guard]
     runs-on: ubuntu-latest
     steps:
       - name: Require all app jobs to pass or skip
