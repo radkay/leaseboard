@@ -86,6 +86,65 @@ technology" (SPEC §2):
   occupancy visuals as SVG from the server, avoiding a client-side charting dependency
   ([D-015](DECISIONS.md)).
 
+## Agent-loop metrics
+These numbers come from the repo's own record: the estimates from each pull request
+description, the corrections from REVIEW-LOG.md. I read them off the merged PRs, not from
+memory.
+
+### Estimate accuracy
+Through PR #31 each PR carried a single agent-time estimate. From PR #32 on (D-014) each
+carries two, a human estimate (what a senior engineer would take) and an agent estimate,
+with the actual recorded as agent wall-clock. The PRs that carry both:
+
+| PR | Human | Agent | Actual |
+|---|---|---|---|
+| #32 | 15m | 3m | 3m |
+| #33 | 30m | 5m | 3m |
+| #34 | 2h | 35m | 25m |
+| #37 | 45m | 8m | 40m |
+| #38 | 15m | 3m | 2m |
+| #39 | 25m | 5m | 2m |
+| #42 | 30m | 8m | 55m |
+| #45 | 40m | 10m | 5m |
+| #46 | 10m | 2m | 2m |
+| #47 | 20m | 5m | 3m |
+| #52 | 3h | 40m | 55m |
+| #53 | 2h | 30m | 35m |
+| #55 | 30m | 15m | 20m |
+| #57 | 45m | 20m | 25m |
+| #61 | 1.5h to 2h | 15m to 20m | 25m |
+| #62 | 5h to 6h | 1.5h to 2h | 2h |
+| #64 | 1h | 20m | 20m |
+| #65 | 10m | 5m | 5m |
+| #66 | 10m | 3m | 3m |
+
+The agent actual came in under the human estimate on every PR here except one: #42, where a
+cross-database role race surfaced mid-task (R-016) and 8 minutes of expected work became 55.
+That gap, agent actual against human estimate, is the speedup the exhibit is about. The
+agent's own estimate was close on small edits and off in both directions on larger ones: it
+overshot on quick changes (#45, estimated 10m, ran 5m) and undershot when something appeared
+during the work (#37, estimated 8m, ran 40m; #62, estimated about 2h, ran about 2h). The
+earlier single-estimate PRs show the overshoot more plainly, since the agent was estimating
+a human-sized task and running at machine speed: #22 estimated 90m and ran 3m, #25 estimated
+90m and ran 6m, #20 estimated 75m and ran 6m.
+
+### Which layer caught each correction
+REVIEW-LOG.md records fifteen corrections, R-001 through R-015. Grouped by the layer that
+caught each:
+- **My review: 13.** R-001, R-002, and R-004 through R-013, plus R-003, which I caught in an
+  independent review session.
+- **The agent itself: 2.** R-014, caught while implementing R-012, and R-015, where the agent
+  verified in Postgres that a proposed fix was impossible and escalated rather than guess.
+- **CI, the deny-rule and auto-mode guardrails, and the review assistant: 0 logged
+  corrections.** Those layers act before a change can merge, so they prevent rather than
+  record; a CI failure or a blocked self-merge is fixed in the same PR and never becomes a
+  log entry. The review assistant did shape R-015: its proposed fix was the one that proved
+  impossible, and the agent caught it.
+
+So every logged correction was a matter of judgment or design that a human or the agent
+caught by reading the work, while the mechanical layers did their catching silently, before
+merge.
+
 ## Scope notes
 This is a weekend build, so some production practices are deliberately out of scope. The
 first checkpoint exposed a race that had passed by chance on every PR (R-016). A true
