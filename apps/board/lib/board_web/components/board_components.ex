@@ -11,15 +11,17 @@ defmodule BoardWeb.BoardComponents do
 
   # The five derived statuses (CONTRACT.md §1), in a fixed display order. One
   # source of truth for label and colour.
+  # The muted, colorblind-safe five from docs/DESIGN.md. Each is paired with its
+  # text label everywhere it appears, so colour is never the only signal.
   @statuses [
-    %{key: "occupied", label: "Occupied", color: "#15803d"},
-    %{key: "on_notice", label: "On notice", color: "#b45309"},
-    %{key: "on_notice_rented", label: "On notice · re-let", color: "#0d9488"},
-    %{key: "vacant_rented", label: "Vacant · rented", color: "#4f46e5"},
-    %{key: "vacant_available", label: "Vacant · available", color: "#b91c1c"}
+    %{key: "occupied", label: "Occupied", color: "#2E3A46"},
+    %{key: "on_notice", label: "On notice", color: "#8A5A12"},
+    %{key: "on_notice_rented", label: "On notice · re-let", color: "#246E73"},
+    %{key: "vacant_rented", label: "Vacant · rented", color: "#516B48"},
+    %{key: "vacant_available", label: "Vacant · available", color: "#9C4A2F"}
   ]
 
-  @fallback %{key: "unknown", label: "Unknown", color: "#6b7280"}
+  @fallback %{key: "unknown", label: "Unknown", color: "#6A6A61"}
 
   @doc "The ordered status metadata."
   def statuses, do: @statuses
@@ -49,9 +51,9 @@ defmodule BoardWeb.BoardComponents do
 
   def kpi_tile(assigns) do
     ~H"""
-    <div class="rounded-lg border border-base-300 px-3 py-2">
-      <div class="text-xs uppercase tracking-wide opacity-60">{@label}</div>
-      <div class="text-xl font-semibold tabular-nums">{@value}</div>
+    <div>
+      <div class="text-xs font-semibold uppercase tracking-wide text-secondary">{@label}</div>
+      <div class="mt-1 text-3xl font-light tabular-nums leading-none">{@value}</div>
     </div>
     """
   end
@@ -101,9 +103,9 @@ defmodule BoardWeb.BoardComponents do
         phx-value-status={s.key}
         aria-pressed={to_string(@active == s.key)}
         class={[
-          "flex items-center gap-2 rounded-full border px-2 py-0.5 transition-opacity",
+          "flex items-center gap-2 rounded-[2px] border border-base-300 px-2 py-0.5 transition-opacity",
           @active && @active != s.key && "opacity-40",
-          @active == s.key && "border-primary font-medium"
+          @active == s.key && "border-primary text-primary font-medium"
         ]}
       >
         <span

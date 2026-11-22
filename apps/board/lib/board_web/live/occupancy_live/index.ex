@@ -32,34 +32,34 @@ defmodule BoardWeb.OccupancyLive.Index do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <.header>
-        Occupancy board
-        <:subtitle>Live unit status across every property.</:subtitle>
-      </.header>
+      <div>
+        <h1 class="text-2xl font-semibold tracking-tight">Occupancy board</h1>
+        <p class="mt-1 text-secondary">Live unit status across every property.</p>
+      </div>
 
-      <div class="mt-4 grid gap-4 sm:grid-cols-2">
+      <div class="grid gap-5 sm:grid-cols-2">
         <.link
           :for={property <- @properties}
           navigate={~p"/properties/#{property.id}"}
-          class="block rounded-xl border border-base-300 p-4 transition-colors hover:border-primary"
+          class="block rounded-[2px] border border-base-300 p-5 transition-colors hover:border-primary"
         >
           <div class="flex items-baseline justify-between gap-2">
-            <h2 class="text-lg font-semibold">{property.name}</h2>
-            <span class="text-sm opacity-60">{property.city}, {property.state}</span>
+            <h2 class="text-lg font-semibold tracking-tight">{property.name}</h2>
+            <span class="text-sm text-secondary">{property.city}, {property.state}</span>
           </div>
 
-          <div class="mt-3 flex items-center gap-4">
+          <div class="mt-4 flex items-center gap-5">
             <.occupancy_donut kpis={property.kpis} class="w-24 shrink-0" />
-            <div class="grid flex-1 grid-cols-3 gap-2">
+            <div class="grid flex-1 grid-cols-3 gap-3">
               <.kpi_tile label="Occupancy" value={"#{property.kpis.occupancy_pct}%"} />
               <.kpi_tile label="Leased" value={"#{property.kpis.leased_pct}%"} />
               <.kpi_tile label="Available" value={"#{property.kpis.available_units}"} />
             </div>
           </div>
 
-          <.status_bar kpis={property.kpis} class="mt-3" />
+          <.status_bar kpis={property.kpis} class="mt-4" />
 
-          <p class="mt-2 text-sm opacity-60">{property.kpis.total_units} units</p>
+          <p class="mt-3 text-sm text-secondary">{property.kpis.total_units} units</p>
         </.link>
       </div>
     </Layouts.app>
