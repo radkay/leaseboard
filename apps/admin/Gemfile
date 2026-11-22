@@ -46,9 +46,6 @@ group :development, :test do
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
-
-  # Synthetic data for db:seed (clearly-fake residents).
-  gem "faker", "~> 3.8"
 end
 
 group :development do
@@ -63,3 +60,7 @@ group :test do
 end
 
 gem "csv", "~> 3.3"
+
+# Synthetic data for db:seed only, but in the default group so `bin/rails db:seed`
+# can populate the demo in production (not just development/test).
+gem "faker", "~> 3.8"
