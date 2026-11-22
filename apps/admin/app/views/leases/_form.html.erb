@@ -1,0 +1,59 @@
+<%= form_with(model: lease) do |form| %>
+  <% if lease.errors.any? %>
+    <div style="color: red">
+      <h2><%= pluralize(lease.errors.count, "error") %> prohibited this lease from being saved:</h2>
+
+      <ul>
+        <% lease.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= form.label :unit_id, style: "display: block" %>
+    <%= form.collection_select :unit_id, Unit.includes(:property).order(:property_id, :number),
+          :id, ->(u) { "#{u.property.name} — #{u.number}" }, prompt: "Select a unit" %>
+  </div>
+
+  <div>
+    <%= form.label :resident_id, style: "display: block" %>
+    <%= form.collection_select :resident_id, Resident.order(:last_name, :first_name),
+          :id, :full_name, prompt: "Select a resident" %>
+  </div>
+
+  <div>
+    <%= form.label :start_date, style: "display: block" %>
+    <%= form.date_field :start_date %>
+  </div>
+
+  <div>
+    <%= form.label :end_date, style: "display: block" %>
+    <%= form.date_field :end_date %>
+  </div>
+
+  <div>
+    <%= form.label :monthly_rent, style: "display: block" %>
+    <%= form.text_field :monthly_rent %>
+  </div>
+
+  <div>
+    <%= form.label :status, style: "display: block" %>
+    <%= form.select :status, Lease.statuses.keys, prompt: "Select a status" %>
+  </div>
+
+  <div>
+    <%= form.label :notice_date, style: "display: block" %>
+    <%= form.date_field :notice_date %>
+  </div>
+
+  <div>
+    <%= form.label :move_out_date, style: "display: block" %>
+    <%= form.date_field :move_out_date %>
+  </div>
+
+  <div>
+    <%= form.submit %>
+  </div>
+<% end %>

@@ -1,0 +1,47 @@
+<%= form_with(model: unit) do |form| %>
+  <% if unit.errors.any? %>
+    <div style="color: red">
+      <h2><%= pluralize(unit.errors.count, "error") %> prohibited this unit from being saved:</h2>
+
+      <ul>
+        <% unit.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= form.label :property_id, style: "display: block" %>
+    <%= form.collection_select :property_id, Property.order(:name), :id, :name, prompt: "Select a property" %>
+  </div>
+
+  <div>
+    <%= form.label :number, style: "display: block" %>
+    <%= form.text_field :number %>
+  </div>
+
+  <div>
+    <%= form.label :bedrooms, style: "display: block" %>
+    <%= form.number_field :bedrooms %>
+  </div>
+
+  <div>
+    <%= form.label :bathrooms, style: "display: block" %>
+    <%= form.text_field :bathrooms %>
+  </div>
+
+  <div>
+    <%= form.label :sq_ft, style: "display: block" %>
+    <%= form.number_field :sq_ft %>
+  </div>
+
+  <div>
+    <%= form.label :market_rent, style: "display: block" %>
+    <%= form.text_field :market_rent %>
+  </div>
+
+  <div>
+    <%= form.submit %>
+  </div>
+<% end %>
