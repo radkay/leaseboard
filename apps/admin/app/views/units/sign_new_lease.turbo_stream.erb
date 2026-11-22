@@ -1,0 +1,8 @@
+<%# Success: add the new lease to the top of the table (newest first) and reset the
+    form inside the panel. The Stimulus controller closes the panel on submit success. %>
+<%= turbo_stream.prepend "unit_leases" do %>
+  <%= render "leases/lease_row", lease: @lease %>
+<% end %>
+<%= turbo_stream.replace "new_lease_form" do %>
+  <%= render "units/new_lease_form", unit: @unit, errors: nil %>
+<% end %>

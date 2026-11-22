@@ -1,0 +1,7 @@
+<tr>
+  <td><%= link_to status_pill(lease.status), lease %></td>
+  <td><%= link_to lease.resident.full_name, lease %></td>
+  <td class="num"><%= money(lease.monthly_rent) %></td>
+  <td><%= pretty_date(lease.start_date) %></td>
+  <td><%= pretty_date(lease.end_date) %></td>
+</tr>
