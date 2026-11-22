@@ -179,6 +179,12 @@ jobs:
         working-directory: apps/board
         run: mix test
 
+      # Prove the production release compiles and assembles (not a Docker build).
+      # Catches prod-only compile/config breakage before a deploy.
+      - name: Production release compiles
+        working-directory: apps/board
+        run: MIX_ENV=prod mix release --overwrite
+
   studio:
     name: studio (Sanity)
     needs: changes
