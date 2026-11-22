@@ -25,7 +25,7 @@ jobs:
       board: ${{ steps.filter.outputs.board }}
       studio: ${{ steps.filter.outputs.studio }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - id: filter
@@ -100,7 +100,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # setup-ruby reads the version file from its working-directory, but the
       # single .tool-versions lives at the repo root, so read the Ruby line from
       # there and pass it explicitly (one source of truth, D-004).
@@ -148,14 +148,14 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: erlef/setup-beam@v1
         id: beam
         with:
           version-file: .tool-versions
           version-type: strict
       - name: Cache deps and _build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             apps/board/deps
@@ -194,8 +194,8 @@ jobs:
       # Sanity's CLI telemetry prompt is noise in CI.
       DO_NOT_TRACK: "1"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .tool-versions
           cache: npm
