@@ -24,6 +24,45 @@ CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA public;
 COMMENT ON EXTENSION btree_gist IS 'support for indexing common datatypes in GiST';
 
 
+--
+-- Name: unit_status_as_of(date); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.unit_status_as_of(as_of date) RETURNS TABLE(unit_id bigint, property_id bigint, unit_number character varying, bedrooms integer, market_rent numeric, status text, current_resident_id bigint, current_monthly_rent numeric, current_lease_end_date date, notice_date date, move_out_date date, next_lease_start_date date, as_of date)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public'
+    AS $$
+  WITH current_lease AS (
+    SELECT DISTINCT ON (l.unit_id)
+      l.unit_id, l.status, l.resident_id, l.monthly_rent, l.end_date, l.notice_date, l.move_out_date
+    FROM leases l
+    WHERE l.status IN ('active', 'notice_given')
+      AND as_of BETWEEN l.start_date AND l.end_date
+    ORDER BY l.unit_id, l.start_date DESC
+  ),
+  next_pending AS (
+    SELECT DISTINCT ON (l.unit_id) l.unit_id, l.start_date
+    FROM leases l
+    WHERE l.status = 'pending'
+    ORDER BY l.unit_id, l.start_date ASC
+  )
+  SELECT
+    u.id, u.property_id, u.number, u.bedrooms, u.market_rent,
+    CASE
+      WHEN cl.status = 'active' THEN 'occupied'
+      WHEN cl.status = 'notice_given' AND np.unit_id IS NOT NULL THEN 'on_notice_rented'
+      WHEN cl.status = 'notice_given' THEN 'on_notice'
+      WHEN cl.unit_id IS NULL AND np.unit_id IS NOT NULL THEN 'vacant_rented'
+      ELSE 'vacant_available'
+    END,
+    cl.resident_id, cl.monthly_rent, cl.end_date, cl.notice_date, cl.move_out_date,
+    np.start_date, as_of
+  FROM units u
+  LEFT JOIN current_lease cl ON cl.unit_id = u.id
+  LEFT JOIN next_pending  np ON np.unit_id = u.id
+$$;
+
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -172,44 +211,19 @@ ALTER SEQUENCE public.properties_id_seq OWNED BY public.properties.id;
 --
 
 CREATE VIEW public.unit_status_today AS
- WITH current_lease AS (
-         SELECT DISTINCT ON (l.unit_id) l.unit_id,
-            l.status,
-            l.monthly_rent,
-            l.end_date,
-            l.notice_date,
-            l.move_out_date
-           FROM public.leases l
-          WHERE (((l.status)::text = ANY ((ARRAY['active'::character varying, 'notice_given'::character varying])::text[])) AND ((CURRENT_DATE >= l.start_date) AND (CURRENT_DATE <= l.end_date)))
-          ORDER BY l.unit_id, l.start_date DESC
-        ), next_pending AS (
-         SELECT DISTINCT ON (l.unit_id) l.unit_id,
-            l.start_date
-           FROM public.leases l
-          WHERE ((l.status)::text = 'pending'::text)
-          ORDER BY l.unit_id, l.start_date
-        )
- SELECT u.id AS unit_id,
-    u.property_id,
-    u.number AS unit_number,
-    u.bedrooms,
-    u.market_rent,
-        CASE
-            WHEN ((cl.status)::text = 'active'::text) THEN 'occupied'::text
-            WHEN (((cl.status)::text = 'notice_given'::text) AND (np.unit_id IS NOT NULL)) THEN 'on_notice_rented'::text
-            WHEN ((cl.status)::text = 'notice_given'::text) THEN 'on_notice'::text
-            WHEN ((cl.unit_id IS NULL) AND (np.unit_id IS NOT NULL)) THEN 'vacant_rented'::text
-            ELSE 'vacant_available'::text
-        END AS status,
-    cl.monthly_rent AS current_monthly_rent,
-    cl.end_date AS current_lease_end_date,
-    cl.notice_date,
-    cl.move_out_date,
-    np.start_date AS next_lease_start_date,
-    CURRENT_DATE AS as_of
-   FROM ((public.units u
-     LEFT JOIN current_lease cl ON ((cl.unit_id = u.id)))
-     LEFT JOIN next_pending np ON ((np.unit_id = u.id)));
+ SELECT unit_id,
+    property_id,
+    unit_number,
+    bedrooms,
+    market_rent,
+    status,
+    current_monthly_rent,
+    current_lease_end_date,
+    notice_date,
+    move_out_date,
+    next_lease_start_date,
+    as_of
+   FROM public.unit_status_as_of(CURRENT_DATE) unit_status_as_of(unit_id, property_id, unit_number, bedrooms, market_rent, status, current_resident_id, current_monthly_rent, current_lease_end_date, notice_date, move_out_date, next_lease_start_date, as_of);
 
 
 --
@@ -483,6 +497,7 @@ ALTER TABLE ONLY public.leases
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20261122005325'),
 ('20261122002440'),
 ('20261122001704'),
 ('20261122000537'),
