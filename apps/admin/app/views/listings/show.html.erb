@@ -1,6 +1,13 @@
 <% content_for :title, @property.name %>
 
 <article class="listing">
+  <% has_photos = @listing && Array(@listing["photos"]).any? { |p| Sanity.image_url(p["ref"]) } %>
+  <% unless has_photos %>
+    <div class="listing-hero-art" style="<%= listing_art_style(@property) %>" aria-hidden="true">
+      <span class="name"><%= @property.name %></span>
+    </div>
+  <% end %>
+
   <h1><%= listing_headline(@property, @listing) %></h1>
   <p class="listing-address"><%= @property.address %>, <%= @property.city %>, <%= @property.state %></p>
 

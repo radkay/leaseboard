@@ -11,6 +11,17 @@ module ListingsHelper
     end
   end
 
+  # Palette colors (docs/DESIGN.md) for the abstract listing-hero gradient that stands in
+  # for a photo and carries the property name. Deep green, teal, ink, sage, terracotta, ochre.
+  ART_COLORS = %w[#1f5c3d #246e73 #2e3a46 #516b48 #9c4a2f #8a5a12].freeze
+
+  # A deterministic two-color gradient per property, so the three listings differ.
+  def listing_art_style(property)
+    a = ART_COLORS[property.id % ART_COLORS.length]
+    b = ART_COLORS[(property.id + 2) % ART_COLORS.length]
+    "--art-a: #{a}; --art-b: #{b};"
+  end
+
   # A minimal portable-text renderer: paragraphs and headings, bullet/number lists, and the
   # strong/em marks. Enough for listing copy without pulling in a rendering gem.
   def render_portable_text(blocks)

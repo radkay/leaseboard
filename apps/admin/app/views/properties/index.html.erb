@@ -1,18 +1,30 @@
-<p style="color: green"><%= notice %></p>
-
 <% content_for :title, "Properties" %>
+
+<% if notice %><p class="flash"><%= notice %></p><% end %>
 
 <h1>Properties</h1>
 
-<p><%= link_to "Rent roll", rent_roll_path %></p>
+<table>
+  <thead>
+    <tr>
+      <th>Name</th><th>Address</th><th>City</th><th>State</th><th>Slug</th><th></th>
+    </tr>
+  </thead>
+  <tbody id="properties">
+    <% @properties.each do |property| %>
+      <tr id="<%= dom_id property %>">
+        <td><%= link_to property.name, property %></td>
+        <td><%= property.address %></td>
+        <td><%= property.city %></td>
+        <td><%= property.state %></td>
+        <td class="secondary"><%= property.sanity_slug %></td>
+        <td><%= link_to "Show", property %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
 
-<div id="properties">
-  <% @properties.each do |property| %>
-    <%= render property %>
-    <p>
-      <%= link_to "Show this property", property %>
-    </p>
-  <% end %>
+<div class="actions">
+  <%= link_to "New property", new_property_path %>
+  <%= link_to "Rent roll", rent_roll_path %>
 </div>
-
-<%= link_to "New property", new_property_path %>
