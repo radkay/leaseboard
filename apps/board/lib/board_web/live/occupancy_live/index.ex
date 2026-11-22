@@ -6,6 +6,7 @@ defmodule BoardWeb.OccupancyLive.Index do
   use BoardWeb, :live_view
 
   import BoardWeb.BoardComponents
+  import BoardWeb.Charts
 
   alias Board.Occupancy
 
@@ -47,11 +48,16 @@ defmodule BoardWeb.OccupancyLive.Index do
             <span class="text-sm opacity-60">{property.city}, {property.state}</span>
           </div>
 
-          <div class="mt-3 grid grid-cols-3 gap-2">
-            <.kpi_tile label="Occupancy" value={"#{property.kpis.occupancy_pct}%"} />
-            <.kpi_tile label="Leased" value={"#{property.kpis.leased_pct}%"} />
-            <.kpi_tile label="Available" value={"#{property.kpis.available_units}"} />
+          <div class="mt-3 flex items-center gap-4">
+            <.occupancy_donut kpis={property.kpis} class="w-24 shrink-0" />
+            <div class="grid flex-1 grid-cols-3 gap-2">
+              <.kpi_tile label="Occupancy" value={"#{property.kpis.occupancy_pct}%"} />
+              <.kpi_tile label="Leased" value={"#{property.kpis.leased_pct}%"} />
+              <.kpi_tile label="Available" value={"#{property.kpis.available_units}"} />
+            </div>
           </div>
+
+          <.status_bar kpis={property.kpis} class="mt-3" />
 
           <p class="mt-2 text-sm opacity-60">{property.kpis.total_units} units</p>
         </.link>

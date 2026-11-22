@@ -33,6 +33,16 @@ defmodule BoardWeb.BoardComponents do
   @doc "Hex colour for a status key."
   def status_color(key), do: status_meta(key).color
 
+  @doc """
+  The five statuses with their counts pulled from a KPI struct/map (which has an
+  integer field named for each status key), in display order.
+  """
+  def status_counts(counts) do
+    for s <- @statuses do
+      Map.put(s, :count, Map.fetch!(counts, String.to_existing_atom(s.key)))
+    end
+  end
+
   @doc "A single KPI figure with a caption."
   attr :label, :string, required: true
   attr :value, :string, required: true
@@ -46,8 +56,66 @@ defmodule BoardWeb.BoardComponents do
     """
   end
 
+  @doc """
+  A visually-hidden data table — the text alternative for a chart. Screen readers
+  and tests read the exact figures the chart draws.
+  """
+  attr :caption, :string, required: true
+  attr :headers, :list, required: true
+  attr :rows, :list, required: true, doc: "a list of rows, each a list of cell values"
+
+  def data_table(assigns) do
+    ~H"""
+    <table class="sr-only">
+      <caption>{@caption}</caption>
+      <thead>
+        <tr>
+          <th :for={header <- @headers}>{header}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr :for={row <- @rows}>
+          <td :for={cell <- row}>{cell}</td>
+        </tr>
+      </tbody>
+    </table>
+    """
+  end
+
   @doc "A colour key mapping each swatch to its status label."
   attr :class, :string, default: nil
+  attr :interactive, :boolean, default: false, doc: "render swatches as phx-click filter buttons"
+  attr :active, :string, default: nil, doc: "the currently filtered status key, if any"
+
+  def status_legend(%{interactive: true} = assigns) do
+    ~H"""
+    <div
+      class={["flex flex-wrap items-center gap-2 text-sm", @class]}
+      role="group"
+      aria-label="Filter by status"
+    >
+      <button
+        :for={s <- statuses()}
+        type="button"
+        phx-click="filter_status"
+        phx-value-status={s.key}
+        aria-pressed={to_string(@active == s.key)}
+        class={[
+          "flex items-center gap-2 rounded-full border px-2 py-0.5 transition-opacity",
+          @active && @active != s.key && "opacity-40",
+          @active == s.key && "border-primary font-medium"
+        ]}
+      >
+        <span
+          class="inline-block size-3 rounded-sm"
+          style={"background-color: #{s.color}"}
+          aria-hidden="true"
+        />
+        <span>{s.label}</span>
+      </button>
+    </div>
+    """
+  end
 
   def status_legend(assigns) do
     ~H"""
