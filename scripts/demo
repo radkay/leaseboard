@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Live occupancy-board demo: changes one lease through Rails's real lease actions
+# so the Phoenix board updates in front of you. This is what the README GIF films.
+# Setup and prerequisites: scripts/README.md.
+set -euo pipefail
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+admin_dir="$here/../apps/admin"
+
+# Both apps must talk to ONE database — the one the board reads. In dev the board
+# reads `board_dev` (apps/board/config/dev.exs), so the demo writes there via
+# Rails's DATABASE_URL. We build the URL from parts and export it unconditionally:
+# the devcontainer ships a DATABASE_URL with no database name, which would send
+# Rails to its own `admin_development` instead. Override the database with
+# BOARD_DATABASE if your board reads a different one.
+db_host="${POSTGRES_HOST:-db}"
+db_user="${POSTGRES_USER:-leaseboard}"
+db_pass="${POSTGRES_PASSWORD:-local_dev_only}"
+db_name="${BOARD_DATABASE:-board_dev}"
+export DATABASE_URL="postgres://${db_user}:${db_pass}@${db_host}:5432/${db_name}"
+
+echo "Shared database: ${DATABASE_URL}"
+echo "Board should be running:  (cd apps/board && mix phx.server)  →  http://localhost:4000"
+echo "Pause between steps: ${DEMO_PAUSE_SECONDS:-6}s (set DEMO_PAUSE_SECONDS to change)."
+echo
+
+cd "$admin_dir"
+exec bin/rails runner "$here/demo.rb"
