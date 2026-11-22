@@ -85,17 +85,25 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RAILS_ENV: test
-      DATABASE_URL: postgres://leaseboard:local_dev_only@localhost:5432
+      # The service's superuser, used only by db/bootstrap. No app connects as it.
+      POSTGRES_HOST: localhost
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: local_dev_only
+      # Owner/reader role passwords the bootstrap and database.yml read (CI placeholders).
+      ADMIN_DEV_PASSWORD: admin_dev_ci
+      ADMIN_TEST_PASSWORD: admin_test_ci
+      READER_DEV_PASSWORD: reader_dev_ci
+      READER_TEST_PASSWORD: reader_test_ci
     services:
       postgres:
         image: postgres:18.7
         env:
-          POSTGRES_USER: leaseboard
+          POSTGRES_USER: postgres
           POSTGRES_PASSWORD: local_dev_only
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U leaseboard"
+          --health-cmd "pg_isready -U postgres"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -111,9 +119,25 @@ jobs:
           ruby-version: ${{ steps.ruby-version.outputs.value }}
           bundler-cache: true
           working-directory: apps/admin
-      - name: Create test database
+      # Create both environments' databases and roles as the superuser (postgres),
+      # exactly as the dev container does. The reader fitness test proves cross-
+      # environment isolation, so leaseboard_dev must exist to be refused from.
+      - name: Bootstrap databases and roles
+        run: |
+          db/bootstrap dev
+          db/bootstrap test
+      # Load the schema as the owner role; db:schema:load is enhanced to run
+      # db:privileges, so each database ends up with exactly the reader grants and
+      # the function lockdown. No db:create/db:test:prepare — the owner is not a
+      # superuser and never drops or creates a database.
+      - name: Load development schema and privileges
         working-directory: apps/admin
-        run: bin/rails db:create
+        run: bin/rails db:schema:load
+        env:
+          RAILS_ENV: development
+      - name: Load test schema and privileges
+        working-directory: apps/admin
+        run: bin/rails db:schema:load
       - name: Tests
         working-directory: apps/admin
         run: bin/rails test

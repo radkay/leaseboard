@@ -4,8 +4,10 @@ require "rails/test_help"
 
 module ActiveSupport
   class TestCase
-    # Run tests in parallel with specified workers
-    parallelize(workers: :number_of_processors)
+    # Single test database (leaseboard_test), created once by db/bootstrap. The
+    # reader fitness test connects as a second role and asserts cross-environment
+    # isolation, so there is exactly one test database — no per-worker copies.
+    parallelize(workers: 1)
 
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all

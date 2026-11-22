@@ -44,7 +44,7 @@ property's public listing are edited in **Sanity Studio** and rendered by a publ
 | `apps/admin` | Rails (current stable), Hotwire, Minitest | Schema + migrations, all writes, admin UI, rent roll, public listing pages, seed data |
 | `apps/board` | Elixir + Phoenix LiveView (current stable), ExUnit | Read-only live occupancy board |
 | `studio/` | Sanity Studio (TypeScript) | Listing content schema: property headline, description, amenities, photos |
-| Database | Postgres (single instance) | Shared; Phoenix connects as `board_reader` with SELECT only |
+| Database | Postgres (single instance) | One database per environment; Phoenix connects as that environment's reader role with SELECT only |
 | Hosting | Render (web services + managed Postgres); Sanity hosted | Free/starter tiers |
 | CI | GitHub Actions | Tests + lint + security scan for each app on every push |
 | Repo | Monorepo on Ron's **personal** GitHub | Public, with README |
@@ -101,7 +101,7 @@ the rent roll totals. No N+1 queries on admin index pages or the rent roll (enfo
 1. `/` lists properties with KPIs. `/properties/:id` shows a unit grid colored by status, with a legend.
 2. Listens for `lease_changed` via `Postgrex.Notifications`, broadcasts on Phoenix PubSub, and the
    affected property's LiveViews re-query and re-render. **No polling.**
-3. Read-only: connects as `board_reader`; any write attempt fails (test proves it).
+3. Read-only: connects as its environment's reader role (`reader_test` in tests); any write attempt fails (test proves it).
 4. Supervision: the notification listener runs under the app's supervision tree and reconnects
    after a database restart.
 

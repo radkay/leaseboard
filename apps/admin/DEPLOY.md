@@ -20,9 +20,11 @@ Notes:
   a real secret (none is needed to compile assets).
 - `bin/rails server` reads `config/puma.rb`, which binds to `PORT` (Render sets it) and
   `RAILS_MAX_THREADS` threads.
-- The release step runs migrations before the new version takes traffic. One migration
-  creates the read-only `board_reader` role and reads `BOARD_READER_PASSWORD` from the
-  environment, so that variable must be present for `db:migrate`.
+- The release step runs migrations before the new version takes traffic, then applies the
+  privileges script (`db/privileges.sql`) through the `db:privileges` hook that `db:migrate`
+  triggers — granting the read-only `reader_prod` role exactly the board's read surface and
+  locking down the status function. Migrations never create roles (CONTRACT.md): `reader_prod`
+  is created once by Ron, with SQL, before the first deploy (see `docs/DEPLOY.md`).
 
 ## Environment variables
 
@@ -32,8 +34,7 @@ Required:
 | --- | --- |
 | `RAILS_ENV` | `production` |
 | `SECRET_KEY_BASE` | Rails session/signing key. Generate once with `bin/rails secret`. (We don't use encrypted credentials, so no `RAILS_MASTER_KEY` is needed.) |
-| `DATABASE_URL` | Full Postgres connection URL. Render's managed Postgres supplies it; `config/database.yml` reads it directly in production. |
-| `BOARD_READER_PASSWORD` | Password for the read-only `board_reader` role the migration provisions; Phoenix connects with the same value. |
+| `DATABASE_URL` | Full Postgres connection URL (the `admin_prod` owner). Render's managed Postgres supplies it; `config/database.yml` reads it directly in production. |
 | `ADMIN_USERNAME`, `ADMIN_PASSWORD` | HTTP basic auth for the whole admin (the public `/listings/:slug` page is the only exception). |
 
 Optional:
