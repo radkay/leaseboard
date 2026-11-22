@@ -24,7 +24,8 @@ Notes:
   privileges script (`db/privileges.sql`) through the `db:privileges` hook that `db:migrate`
   triggers — granting the read-only `reader_prod` role exactly the board's read surface and
   locking down the status function. Migrations never create roles (CONTRACT.md): `reader_prod`
-  is created once by Ron, with SQL, before the first deploy (see `docs/DEPLOY.md`).
+  is created once by Ron, with SQL (`CREATE ROLE reader_prod LOGIN PASSWORD '…'`), before the
+  first deploy, so `db:privileges` has a role to grant.
 
 ## Environment variables
 
