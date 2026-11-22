@@ -101,7 +101,7 @@ td a:hover { text-decoration: underline; }
 form { max-width: var(--measure); }
 .rent-roll-filter { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-3); margin-bottom: var(--space-4); }
 label { display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: var(--space-1); }
-input[type="text"], input[type="date"], input[type="number"], select {
+input[type="text"], input[type="email"], input[type="tel"], input[type="date"], input[type="number"], select {
   font: inherit;
   padding: var(--space-2) var(--space-2);
   border: 1px solid var(--rule);
@@ -189,3 +189,6 @@ dialog.panel h3 { margin-top: 0; }
   border-left: 2px solid var(--status-vacant-available);
   color: var(--status-vacant-available);
 }
+
+/* Space between the "Add new lease" button and the unit details below it. */
+[data-controller="new-lease"] { margin-bottom: var(--space-5); }
