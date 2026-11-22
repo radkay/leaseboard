@@ -46,7 +46,7 @@ const listings = [
       ),
       para(
         "mc2",
-        "Interiors pair in-unit laundry with generous light. Placeholder copy — replace before launch.",
+        "Interiors pair in-unit laundry with generous light.",
       ),
     ],
     amenities: ["In-unit laundry", "Courtyard garden", "Covered parking", "Pet friendly", "Bike storage"],
@@ -65,7 +65,7 @@ const listings = [
       ),
       para(
         "rl2",
-        "Open layouts suit remote work and entertaining alike. Placeholder copy — replace before launch.",
+        "Open layouts suit remote work and entertaining alike.",
       ),
     ],
     amenities: ["Floor-to-ceiling windows", "Rooftop deck", "Fitness center", "Package lockers", "EV charging"],
@@ -84,7 +84,7 @@ const listings = [
       ),
       para(
         "ow2",
-        "A quiet building with a dog run and secure entry. Placeholder copy — replace before launch.",
+        "A quiet building with a dog run and secure entry.",
       ),
     ],
     amenities: ["Hardwood floors", "Updated kitchens", "On-site laundry", "Dog run", "Secure entry"],
