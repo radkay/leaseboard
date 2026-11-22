@@ -28,7 +28,7 @@ auto-merge. Estimates are kept honest by review: a retroactive estimate was caug
 
 ## Layered guardrails
 No single mechanism is trusted; they stack, strongest on the server:
-1. **Instructions:** CLAUDE.md's "stop and ask" list and hard rules.
+1. **Instructions:** CLAUDE.md's decision tiers and hard rules.
 2. **Deny rules:** committed `.claude/settings.json` denies force-push, secret files, and
    edits to its own rules; gaps here were themselves review findings
    ([R-002](REVIEW-LOG.md), [R-003](REVIEW-LOG.md)).
@@ -53,7 +53,11 @@ change automatically. A separate review assistant, an independent AI session wit
 access to the repository, checked agent plans and pull requests against the spec and
 CLAUDE.md, and raised concerns. I made every decision and approved every merge into `main`.
 Corrections from any of these layers are recorded in REVIEW-LOG.md, including the time the
-review assistant's own proposed fix proved impossible and an agent caught it (R-015).
+review assistant's own proposed fix proved impossible and an agent caught it
+([R-015](REVIEW-LOG.md)). The review assistant runs on the same family of models as the
+agents, so it is a second opinion rather than an independent auditor. Its value comes from a
+separate role and context and from having no write access, and it missed things too
+([R-015](REVIEW-LOG.md), [R-020](REVIEW-LOG.md)). The decisions are mine.
 
 ## Branches, checkpoints and parallel agents
 Agents work as `leaseboard-bot`, branch from `origin/dev`, and auto-merge into `dev` once
@@ -120,7 +124,7 @@ measured speedup. The PRs that carry both:
 | #66 | 10m | 3m | 3m |
 
 The agent's actual came in below the senior-engineer estimate on all of these but #42, where
-a cross-database role race surfaced mid-task (R-016) and 8 minutes of expected work became
+a cross-database role race surfaced mid-task ([R-016](REVIEW-LOG.md)) and 8 minutes of expected work became
 55. The agent's estimate of its own time was close on small edits and off in both directions
 on larger ones: it overshot on quick changes (#45, estimated 10m, ran 5m) and undershot when
 something appeared during the work (#37, estimated 8m, ran 40m). Some larger tasks landed on
@@ -141,7 +145,7 @@ PR and does not appear in this log.
 
 ## Scope notes
 This is a weekend build, so some production practices are deliberately out of scope. The
-first checkpoint exposed a race that had passed by chance on every PR (R-016). A true
+first checkpoint exposed a race that had passed by chance on every PR ([R-016](REVIEW-LOG.md)). A true
 production setup would add a staging environment, with `dev` deployed automatically for
 verification, and GitHub's merge queue, so `main` only ever receives verified merges. Here,
 the `dev` branch and the checkpoint PRs into `main` play that role.
