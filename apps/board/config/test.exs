@@ -13,6 +13,10 @@ config :board, Board.Repo,
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: System.schedulers_online() * 2
 
+# Don't start the global LISTEN connection in test; each test starts and controls
+# its own Board.LeaseChangeListener (see test/board/lease_change_listener_test.exs).
+config :board, start_listener: false
+
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :board, BoardWeb.Endpoint,
