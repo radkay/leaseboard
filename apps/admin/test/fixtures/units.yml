@@ -1,0 +1,15 @@
+sunset_101:
+  property: sunset
+  number: "101"
+  bedrooms: 0
+  bathrooms: 1.0
+  sq_ft: 480
+  market_rent: 950.00
+
+sunset_102:
+  property: sunset
+  number: "102"
+  bedrooms: 2
+  bathrooms: 2.0
+  sq_ft: 1050
+  market_rent: 1800.00

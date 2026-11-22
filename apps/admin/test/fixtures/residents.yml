@@ -1,0 +1,11 @@
+alice:
+  first_name: Alice
+  last_name: Tenant
+  email: alice@example.test
+  phone: "555-0101"
+
+bob:
+  first_name: Bob
+  last_name: Renter
+  email: bob@example.test
+  phone: "555-0102"

@@ -1,0 +1,17 @@
+# Current active lease on unit 101.
+sunset_101_active:
+  unit: sunset_101
+  resident: alice
+  start_date: 2026-01-01
+  end_date: 2026-12-31
+  monthly_rent: 950.00
+  status: active
+
+# Past (ended) lease on unit 102 — the unit is currently vacant.
+sunset_102_ended:
+  unit: sunset_102
+  resident: bob
+  start_date: 2025-01-01
+  end_date: 2025-12-31
+  monthly_rent: 1750.00
+  status: ended
