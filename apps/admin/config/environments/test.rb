@@ -30,6 +30,13 @@ Rails.application.configure do
   # Disable request forgery protection in test environment.
   config.action_controller.allow_forgery_protection = false
 
+  # The test owner role (admin_test) is deliberately not a superuser, so it can't
+  # run Rails' post-fixture foreign-key verification (it UPDATEs pg_constraint).
+  # The FKs are DEFERRABLE INITIALLY DEFERRED, so fixtures load correctly and
+  # integrity is still enforced at commit for real writes — the verification pass
+  # is unnecessary here.
+  config.active_record.verify_foreign_keys_for_fixtures = false
+
   # Store uploaded files on the local file system in a temporary directory.
   config.active_storage.service = :test
 
