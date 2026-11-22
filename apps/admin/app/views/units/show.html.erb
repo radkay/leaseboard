@@ -3,6 +3,18 @@
 <% if notice %><p class="flash"><%= notice %></p><% end %>
 <% if alert %><p class="flash alert"><%= alert %></p><% end %>
 
+<div data-controller="new-lease" data-action="turbo:submit-end->new-lease#submitEnd">
+  <div class="actions">
+    <button type="button" data-action="new-lease#open">Add new lease</button>
+  </div>
+
+  <dialog class="panel" data-new-lease-target="dialog">
+    <button type="button" class="panel-close" data-action="new-lease#close" aria-label="Close">&times;</button>
+    <h3>Sign a new lease</h3>
+    <%= render "units/new_lease_form", unit: @unit, errors: nil %>
+  </dialog>
+</div>
+
 <%= render @unit %>
 
 <h2>Leases</h2>
@@ -13,34 +25,12 @@
       <th>Status</th><th>Resident</th><th class="num">Rent</th><th>Lease start</th><th>Lease end</th>
     </tr>
   </thead>
-  <tbody>
+  <tbody id="unit_leases">
     <% @leases.each do |lease| %>
-      <tr>
-        <td><%= link_to status_pill(lease.status), lease %></td>
-        <td><%= link_to lease.resident.full_name, lease %></td>
-        <td class="num"><%= money(lease.monthly_rent) %></td>
-        <td><%= pretty_date(lease.start_date) %></td>
-        <td><%= pretty_date(lease.end_date) %></td>
-      </tr>
+      <%= render "leases/lease_row", lease: lease %>
     <% end %>
   </tbody>
 </table>
-
-<fieldset>
-  <legend>Sign a new lease (new resident)</legend>
-  <%= form_with url: sign_new_lease_unit_path(@unit), method: :post do |form| %>
-    <%= form.fields_for :resident do |resident| %>
-      <%= resident.label :first_name %> <%= resident.text_field :first_name, required: true %>
-      <%= resident.label :last_name %> <%= resident.text_field :last_name, required: true %>
-      <%= resident.label :email %> <%= resident.email_field :email, required: true %>
-      <%= resident.label :phone %> <%= resident.telephone_field :phone, required: true %>
-    <% end %>
-    <%= form.label :start_date %> <%= form.date_field :start_date, required: true %>
-    <%= form.label :end_date %> <%= form.date_field :end_date, required: true %>
-    <%= form.label :monthly_rent %> <%= form.number_field :monthly_rent, step: :any, required: true %>
-    <%= form.submit "Sign new lease" %>
-  <% end %>
-</fieldset>
 
 <div class="actions">
   <%= link_to "Edit this unit", edit_unit_path(@unit) %>
