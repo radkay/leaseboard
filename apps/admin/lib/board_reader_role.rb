@@ -20,20 +20,27 @@ module BoardReaderRole
   def install!(connection, password:)
     raise ArgumentError, "board_reader password is required" if password.to_s.empty?
 
+    create_or_update_role!(connection, name: NAME, password: password)
+    grant_reads!(connection)
+  end
+
+  # Race-safe create-or-update of a login role. A check-then-create (IF NOT EXISTS …
+  # CREATE) races under parallel processes because roles are cluster-wide: two sessions
+  # can both pass the existence check and CREATE, hitting a duplicate key on pg_authid.
+  # Instead, attempt CREATE and fall back to ALTER on a duplicate, which is also safe if
+  # two deploys run migrations at once (R-016). `name` is always a trusted constant.
+  def create_or_update_role!(connection, name:, password:)
     quoted_password = connection.quote(password)
     connection.execute(<<~SQL)
       DO $$
       BEGIN
-        IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '#{NAME}') THEN
-          ALTER ROLE #{NAME} WITH LOGIN PASSWORD #{quoted_password};
-        ELSE
-          CREATE ROLE #{NAME} WITH LOGIN PASSWORD #{quoted_password};
-        END IF;
+        CREATE ROLE #{name} WITH LOGIN PASSWORD #{quoted_password};
+      EXCEPTION
+        WHEN duplicate_object OR unique_violation THEN
+          ALTER ROLE #{name} WITH LOGIN PASSWORD #{quoted_password};
       END
       $$;
     SQL
-
-    grant_reads!(connection)
   end
 
   # (Re-)applies exactly the read grants board_reader needs. Idempotent, and must be
