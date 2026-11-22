@@ -230,14 +230,8 @@ jobs:
             -h "$POSTGRES_HOST" -U admin_test -d leaseboard_test \
             -v db=leaseboard_test -v owner=admin_test -v reader=reader_test \
             -f apps/admin/db/privileges.sql
-      # Test only: let the owner switch to the reader with SET LOCAL ROLE, so the
-      # read-only tests run the board's real queries as reader_test (Task 1 step 3).
-      # Needs the superuser and is never done in dev or prod.
-      - name: Grant the owner membership in the reader role (test only)
-        run: |
-          PGPASSWORD="$POSTGRES_PASSWORD" psql --no-psqlrc -v ON_ERROR_STOP=1 \
-            -h "$POSTGRES_HOST" -U postgres -d leaseboard_test \
-            -c 'GRANT reader_test TO admin_test'
+      # The owner's membership in reader_test (so the read-only tests can SET LOCAL ROLE
+      # to the reader) is granted by `db/bootstrap test` above; no separate step here.
       - name: Tests
         working-directory: apps/board
         run: mix test

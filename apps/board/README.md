@@ -29,16 +29,9 @@ dependencies and builds assets — it never creates a database.
 The tests insert fixtures as the owner `admin_test`, then run the board's real
 query functions as the reader via `SET LOCAL ROLE reader_test` (the read-only
 proof — see `Board.DataCase.as_reader/1`). For the owner to switch to that role,
-`admin_test` must be a member of `reader_test` in the **test** database. Apply it
-once, as the superuser:
-
-```sh
-psql -h "$POSTGRES_HOST" -U postgres -d leaseboard_test -c 'GRANT reader_test TO admin_test'
-```
-
-(CI does this in the `board` job. See the PR for #60 — this test-only grant may be
-better placed in `db/bootstrap test` so local setup is a single step; that file is
-Agent A's, so it's flagged there rather than changed here.)
+`admin_test` must be a member of `reader_test` in the **test** database.
+`db/bootstrap test` grants that membership (test only), so local setup is a single
+step and no separate `GRANT` is needed.
 
 Then run `mix test` with the role passwords in the environment (`.env`).
 
