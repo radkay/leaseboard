@@ -1,5 +1,5 @@
 class UnitsController < ApplicationController
-  before_action :set_unit, only: %i[ show edit update destroy ]
+  before_action :set_unit, only: %i[ show edit update destroy sign_new_lease ]
 
   # GET /units or /units.json
   def index
@@ -55,6 +55,20 @@ class UnitsController < ApplicationController
       format.html { redirect_to units_path, notice: "Unit was successfully destroyed.", status: :see_other }
       format.json { head :no_content }
     end
+  end
+
+  # POST /units/1/sign_new_lease
+  def sign_new_lease
+    lease = Leases::SignNewLease.call(
+      unit: @unit,
+      resident_attributes: params.expect(resident: [ :first_name, :last_name, :email, :phone ]).to_h,
+      start_date: params.expect(:start_date),
+      end_date: params.expect(:end_date),
+      monthly_rent: params.expect(:monthly_rent)
+    )
+    redirect_to lease, notice: "New lease signed."
+  rescue ActiveRecord::RecordInvalid => e
+    redirect_to @unit, alert: "Could not sign lease: #{e.record.errors.full_messages.to_sentence}"
   end
 
   private

@@ -1,5 +1,5 @@
 class LeasesController < ApplicationController
-  before_action :set_lease, only: %i[ show edit update destroy ]
+  before_action :set_lease, only: %i[ show edit update destroy give_notice sign_renewal ]
 
   # GET /leases or /leases.json
   def index
@@ -55,6 +55,26 @@ class LeasesController < ApplicationController
       format.html { redirect_to leases_path, notice: "Lease was successfully destroyed.", status: :see_other }
       format.json { head :no_content }
     end
+  end
+
+  # POST /leases/1/give_notice
+  def give_notice
+    Leases::GiveNotice.call(@lease, move_out_date: params.expect(:move_out_date))
+    redirect_to @lease, notice: "Notice recorded."
+  rescue ActiveRecord::RecordInvalid => e
+    redirect_to @lease, alert: "Could not record notice: #{e.record.errors.full_messages.to_sentence}"
+  end
+
+  # POST /leases/1/sign_renewal
+  def sign_renewal
+    renewal = Leases::SignRenewal.call(
+      @lease,
+      new_end_date: params.expect(:new_end_date),
+      monthly_rent: params.expect(:monthly_rent)
+    )
+    redirect_to renewal, notice: "Renewal signed."
+  rescue ActiveRecord::RecordInvalid => e
+    redirect_to @lease, alert: "Could not sign renewal: #{e.record.errors.full_messages.to_sentence}"
   end
 
   private
