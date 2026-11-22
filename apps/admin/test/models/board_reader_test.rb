@@ -65,6 +65,39 @@ class BoardReaderTest < ActiveSupport::TestCase
     end
   end
 
+  test "role creation is race-safe when two connections create it at once" do
+    # Use a throwaway role so this deterministic create-race can't disturb the shared
+    # board_reader that other parallel tests rely on. install! runs this same primitive.
+    probe = "board_reader_race_probe"
+    ActiveRecord::Base.connection.execute("DROP ROLE IF EXISTS #{probe}")
+
+    errors = Queue.new
+    ready = Queue.new
+    go = Queue.new
+    2.times.map do
+      Thread.new do
+        ActiveRecord::Base.connection_pool.with_connection do |conn|
+          ready << 1 # connection checked out
+          go.pop     # both threads start the CREATE together
+          BoardReaderRole.create_or_update_role!(conn, name: probe, password: "probe_pw")
+        end
+      rescue StandardError => e
+        errors << e
+      end
+    end.tap do |threads|
+      2.times { ready.pop }
+      2.times { go << 1 }
+      threads.each(&:join)
+    end
+
+    messages = []
+    messages << errors.pop until errors.empty?
+    assert_empty messages, "concurrent role creation raced: #{messages.map(&:message).join('; ')}"
+    assert ActiveRecord::Base.connection.select_value("SELECT 1 FROM pg_roles WHERE rolname = '#{probe}'")
+  ensure
+    ActiveRecord::Base.connection.execute("DROP ROLE IF EXISTS #{probe}")
+  end
+
   private
 
   def board_reader_connection
