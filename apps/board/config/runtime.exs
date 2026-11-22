@@ -41,16 +41,17 @@ end
 
 if config_env() == :prod do
   # The board is read-only (SPEC: "one writer"). In production DATABASE_URL must be
-  # the `board_reader` connection string — a role with SELECT only (apps/admin owns
-  # and provisions it). Ecto parses this URL into discrete host/user/password/db
-  # fields, which `Board.LeaseChangeListener.repo_connection_opts/0` reads back from
+  # the `reader_prod` connection string — a role with SELECT only (apps/admin owns
+  # and provisions it; CONTRACT.md Environments table). Ecto parses this URL into
+  # discrete host/user/password/db fields, which
+  # `Board.LeaseChangeListener.repo_connection_opts/0` reads back from
   # `Board.Repo.config/0`, so the LISTEN connection uses the same settings and the
   # same read-only role.
   database_url =
     System.get_env("DATABASE_URL") ||
       raise """
       environment variable DATABASE_URL is missing.
-      For example: ecto://board_reader:PASS@HOST/leaseboard
+      For example: ecto://reader_prod:PASS@HOST/leaseboard_prod
       """
 
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []

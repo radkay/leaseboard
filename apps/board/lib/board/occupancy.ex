@@ -3,9 +3,9 @@ defmodule Board.Occupancy do
   Read side of the occupancy board.
 
   Queries the Rails-owned views (CONTRACT.md §2–§5) through `Board.Repo`, which
-  connects as `board_reader` (SELECT only). The status and KPI rules live in
-  Rails; this context only reads their results. All schemas are read-only — there
-  are no changesets and the board never writes.
+  connects as the environment's reader role (SELECT only). The status and KPI rules
+  live in Rails; this context only reads their results. All schemas are read-only —
+  there are no changesets and the board never writes.
   """
   import Ecto.Query
 

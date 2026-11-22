@@ -1,6 +1,7 @@
 # Drives the Phoenix occupancy board live by changing one lease through Rails's
-# real lease actions. Run it with scripts/demo (which points Rails at the shared
-# database the board reads and runs this file with `bin/rails runner`).
+# real lease actions. Run it with scripts/demo, which runs this file with
+# `bin/rails runner` against the admin's development database (leaseboard_dev) —
+# the same database the board reads.
 #
 # Watch a property's board (http://localhost:4000/properties/<id>) while it runs:
 # the affected unit flips Occupied → On notice → On notice · re-let, each update
