@@ -60,6 +60,9 @@ If `CREATE ROLE` is **refused** (e.g. `admin_prod` lacks `CREATEROLE`): **stop a
 ask Ron.** Render's docs do not state whether the managed-database user can create
 roles, so this runbook does not assume it; don't work around it from the dashboard.
 
+**Verified 2026-11-22:** `admin_prod` has `CREATEROLE` on Render, and `CREATE ROLE
+reader_prod` succeeded as `admin_prod`.
+
 > If the admin's first deploy already failed at the privileges step because
 > `reader_prod` wasn't there yet, that's fine: create the role, then redeploy the
 > admin (step 4).
@@ -93,6 +96,11 @@ With `reader_prod` created, let the admin deploy (or redeploy it). Its pre-deplo
 runs `bin/rails db:migrate`, which migrates the schema and — through the
 `db:privileges` hook — grants `reader_prod` its read surface and locks down the
 status function (`apps/admin/DEPLOY.md`). The admin should go healthy at `/up`.
+
+**Verified 2026-11-22:** `privileges.sql` revokes `CONNECT` from `PUBLIC`, and
+Render's database metrics (Active Connections) kept reporting afterward. Render's
+monitoring connects as the owner, so no extra grant for a Render monitoring role is
+needed.
 
 ## 5. Point the board at `reader_prod`
 
