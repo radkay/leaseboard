@@ -2,12 +2,81 @@
 
 Ron's step-by-step for bringing Leaseboard up on Render and loading content.
 
-> **Status.** This runbook is being assembled over several PRs. The Render
-> Blueprint steps (create the Blueprint, set secrets, run the Rails seed) are
-> added by the deploy-blueprint PR. The **Sanity content import** below is
-> complete and standalone.
+The Blueprint (`render.yaml` at the repo root) declares three resources: the
+**admin** web service (Rails, the only writer), the **board** web service
+(Phoenix, read-only, Docker), and one managed **Postgres**. Everything secret is
+`sync: false` — you set it by hand. Keep all three in the same region.
 
-## Import the Sanity listing content
+## 1. Create the Blueprint
+
+1. In the Render dashboard: **New → Blueprint**, connect this repository, and pick
+   the default branch. Render reads `render.yaml` and proposes the three resources.
+2. Before the first deploy, set the secrets below (step 2). Deploys that are missing
+   a required variable will fail cleanly — set it and redeploy.
+
+## 2. Set the secrets
+
+Generate and set these in the dashboard (each service has its own **Environment**):
+
+**Shared value — `BOARD_READER_PASSWORD`.** Pick a strong password. The admin's
+migration provisions the read-only `board_reader` role with it, and the board
+connects with the **same** value (step 4). Set it on **leaseboard-admin** now.
+
+**leaseboard-admin:**
+
+| Variable | How to get it |
+|---|---|
+| `SECRET_KEY_BASE` | `cd apps/admin && bin/rails secret` |
+| `BOARD_READER_PASSWORD` | the shared value above |
+| `ADMIN_USERNAME`, `ADMIN_PASSWORD` | your choice — HTTP basic auth for the admin |
+| `SANITY_PROJECT_ID`, `SANITY_DATASET`, `SANITY_API_VERSION` | optional; from your Sanity project. Unset ⇒ the listing page shows fallback copy and makes no network call |
+
+(`DATABASE_URL` is wired from the database automatically — don't set it.)
+
+**leaseboard-board:**
+
+| Variable | How to get it |
+|---|---|
+| `SECRET_KEY_BASE` | `cd apps/board && mix phx.gen.secret` (a **different** value from the admin's) |
+| `PHX_HOST` | the board service's hostname, e.g. `leaseboard-board.onrender.com` (Render shows it after the service is created). Used for `check_origin` and the canonical URL |
+| `DATABASE_URL` | the `board_reader` connection string — build it in step 4 |
+
+## 3. First deploy (admin + database)
+
+Let the Blueprint deploy. On the admin, the **pre-deploy** command runs
+`bin/rails db:migrate`, which creates the schema, the status/KPI views, and the
+`board_reader` role (using `BOARD_READER_PASSWORD`). The board service may stay
+unhealthy until step 4 — that's expected.
+
+## 4. Point the board at `board_reader`
+
+Open **leaseboard-db** and copy its **Internal Database URL** (that's the owner
+connection — host, port and database name). Build the board's `DATABASE_URL` by
+swapping the user and password for the read-only role:
+
+```
+postgres://board_reader:<BOARD_READER_PASSWORD>@<internal-host>:<port>/<database>
+```
+
+Set it as `DATABASE_URL` on **leaseboard-board** and trigger a redeploy. Use the
+**internal** host so the board reaches the database over Render's private network.
+
+The board connects read-only and its `Postgrex.Notifications` listener uses the
+same URL, so a lease change in the admin flows to the board within a second.
+
+## 5. Seed the demo data — once
+
+`db:seed` is destructive (it clears and regenerates), so it's gated. From a
+**leaseboard-admin** shell, run it once:
+
+```sh
+ALLOW_SEED_RESET=1 bin/rails db:seed
+```
+
+Don't make `ALLOW_SEED_RESET` a persistent variable, and never add seeding to the
+build or release commands — a redeploy would wipe live data.
+
+## 6. Import the Sanity listing content
 
 Loads the three `propertyListing` documents (one per seeded property) and their
 placeholder images into the Studio's dataset. Run this **once**, after the Rails
@@ -44,3 +113,14 @@ Notes:
 After importing, the public listing page for each property renders its headline,
 description, amenities and photos; the live available-unit count still comes from
 Postgres.
+
+## 7. Verify
+
+- **Admin** — `https://<admin-host>/up` returns 200; the admin UI loads behind
+  basic auth; `/rent_roll` works.
+- **Board** — `https://<board-host>/healthz` returns `ok`; `/` lists the three
+  properties with KPIs; a property page shows the unit grid and charts.
+- **Live update** — give notice on a lease in the admin and watch the board page
+  update within a second (this is the `scripts/demo` flow, run against production).
+- **Listings** — `https://<admin-host>/listings/<slug>` renders the Sanity content;
+  with `SANITY_*` unset it still renders fallback copy.
