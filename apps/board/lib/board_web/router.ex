@@ -17,7 +17,8 @@ defmodule BoardWeb.Router do
   scope "/", BoardWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    live "/", OccupancyLive.Index
+    live "/properties/:id", OccupancyLive.Show
   end
 
   # Other scopes may use custom stacks.
