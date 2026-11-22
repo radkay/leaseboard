@@ -20,10 +20,10 @@ The admin is behind a login. Access is available on request: `[CONTACT]`.
 
 I built Leaseboard by directing parallel AI coding agents, one per app, each branching from
 `dev` and landing its work through pull requests. The work runs under layered guardrails that
-GitHub enforces on its own servers: branch rules require a reviewed pull request and a green
-`ci-ok` check for every change, agents run as a separate `leaseboard-bot` account, and only I
-approve anything reaching `main`. Every decision and every correction is written down as it
-happens, so the process is auditable, not just the result.
+GitHub enforces on its own servers: every change lands through a pull request with a green
+`ci-ok` check, agents run as a separate `leaseboard-bot` account, and only my approving review
+lets anything into `main`. Every decision and every correction is recorded at each checkpoint,
+so the process is auditable, not just the result.
 
 The process is the exhibit: [docs/APPROACH.md](docs/APPROACH.md) explains how the agent loop
 and the guardrails fit together, [docs/DECISIONS.md](docs/DECISIONS.md) records each decision,

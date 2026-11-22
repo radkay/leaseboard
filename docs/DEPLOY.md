@@ -135,7 +135,7 @@ access. Authenticate with `npx sanity login`, or export a write token as
 From the `studio/` directory:
 
 ```sh
-npx sanity dataset import seed-content/listings.ndjson --dataset production --project 0dws7msn --replace
+npx sanity dataset import seed-content/listings.ndjson --dataset production --replace
 ```
 
 `--replace` upserts by document id (`listing-<slug>`), so re-running is safe. The
