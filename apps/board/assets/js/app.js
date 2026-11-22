@@ -33,7 +33,8 @@ const liveSocket = new LiveSocket("/live", Socket, {
 })
 
 // Show progress bar on live navigation and form submits
-topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
+// The page-loading indicator in the deep-green accent (docs/DESIGN.md), no shadow.
+topbar.config({barColors: {0: "#1f5c3d"}, shadowColor: "rgba(0, 0, 0, 0)"})
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
 window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 
