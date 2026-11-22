@@ -58,8 +58,13 @@ jobs:
             shared=true
           fi
           echo "Shared inputs changed: $shared"
+          # $3 is an optional extra path regex that also triggers the app (beyond its own
+          # directory and the shared inputs above).
           emit() {
-            if [ "$shared" = true ] || printf '%s\n' "$changed" | grep -qE "^$2/"; then
+            local extra="${3:-}"
+            if [ "$shared" = true ] \
+              || printf '%s\n' "$changed" | grep -qE "^$2/" \
+              || { [ -n "$extra" ] && printf '%s\n' "$changed" | grep -qE "$extra"; }; then
               echo "$1=true" >> "$GITHUB_OUTPUT"
               printf '%s -> true\n' "$1"
             else
@@ -68,7 +73,9 @@ jobs:
             fi
           }
           emit admin apps/admin
-          emit board apps/board
+          # The board reads the Rails-owned views, so re-run it when the schema/views
+          # change (apps/admin/db/structure.sql) even if apps/board itself didn't.
+          emit board apps/board '^apps/admin/db/structure\.sql$'
           emit studio studio
 
   admin:
