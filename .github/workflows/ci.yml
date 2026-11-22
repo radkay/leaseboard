@@ -126,18 +126,25 @@ jobs:
         run: |
           db/bootstrap dev
           db/bootstrap test
-      # Load the schema as the owner role; db:schema:load is enhanced to run
-      # db:privileges, so each database ends up with exactly the reader grants and
-      # the function lockdown. No db:create/db:test:prepare — the owner is not a
-      # superuser and never drops or creates a database.
-      - name: Load development schema and privileges
+      # Load the schema as the owner role. In development (and with no DATABASE_URL)
+      # Rails also loads the test database — ActiveRecord's each_current_configuration
+      # — so this one command loads both leaseboard_dev and leaseboard_test. No
+      # db:create/db:test:prepare: the owner is not a superuser and never drops or
+      # creates a database.
+      - name: Load schemas (development loads the test database too)
         working-directory: apps/admin
         run: bin/rails db:schema:load
         env:
           RAILS_ENV: development
-      - name: Load test schema and privileges
+      # Apply the privileges script to each database (grants the reader, locks down
+      # the function, limits CONNECT). db:schema:load already ran it for leaseboard_dev
+      # via the hook; run it explicitly for both so the step is self-evident and
+      # idempotent.
+      - name: Apply privileges to both databases
         working-directory: apps/admin
-        run: bin/rails db:schema:load
+        run: |
+          RAILS_ENV=development bin/rails db:privileges
+          RAILS_ENV=test bin/rails db:privileges
       - name: Tests
         working-directory: apps/admin
         run: bin/rails test
