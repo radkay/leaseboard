@@ -86,7 +86,18 @@ defmodule Board.MixProject do
       setup: ["deps.get", "ecto.setup", "assets.setup", "assets.build"],
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
-      test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
+      # The board never defines the schema: Rails owns it and dumps it to
+      # apps/admin/db/structure.sql. The test database is loaded from that dump
+      # (the views and the status function the board reads), so both apps test
+      # against one definition. --skip-if-loaded makes re-runs against an
+      # already-loaded local database a no-op; CI starts from an empty database
+      # and loads every time. Drop the local DB (mix ecto.drop) to pick up a
+      # changed dump.
+      test: [
+        "ecto.create --quiet",
+        "ecto.load --dump-path ../admin/db/structure.sql --skip-if-loaded --quiet",
+        "test"
+      ],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
       "assets.build": ["compile", "tailwind board", "esbuild board"],
       "assets.deploy": [
