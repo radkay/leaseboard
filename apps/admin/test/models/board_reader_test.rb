@@ -39,6 +39,32 @@ class BoardReaderTest < ActiveSupport::TestCase
     end
   end
 
+  test "the status function is locked to board_reader and exposes no resident data" do
+    conn = ActiveRecord::Base.connection
+    # Mirror the migration: structure.sql carries no function privileges, so apply them here.
+    conn.execute("REVOKE EXECUTE ON FUNCTION unit_status_as_of(date) FROM PUBLIC")
+    conn.execute("GRANT EXECUTE ON FUNCTION unit_status_as_of(date) TO board_reader")
+
+    # No arbitrary role can call the SECURITY DEFINER function.
+    refute conn.select_value("SELECT has_function_privilege('public', 'unit_status_as_of(date)', 'EXECUTE')")
+
+    reader = board_reader_connection
+    begin
+      # board_reader reads every board view (which call the function with the owner's rights).
+      %w[unit_status_today property_kpis_today property_unit_type_kpis_today lease_expirations_12m].each do |view|
+        assert_nothing_raised { reader.exec("SELECT count(*) FROM #{view}") }
+      end
+
+      # board_reader may call the function, but it returns a lease id and no resident data.
+      columns = reader.exec("SELECT * FROM unit_status_as_of(CURRENT_DATE) LIMIT 0").fields
+      assert_includes columns, "current_lease_id"
+      assert_empty columns.grep(/resident/i), "the function must not expose resident data"
+    ensure
+      reader.close
+      conn.execute("GRANT EXECUTE ON FUNCTION unit_status_as_of(date) TO PUBLIC")
+    end
+  end
+
   private
 
   def board_reader_connection
