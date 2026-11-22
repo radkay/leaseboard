@@ -54,28 +54,15 @@ SITES = {
   ]
 }.freeze
 
-# render.yaml names its managed database (and, once set, its databaseName/user)
-# in the top-level `databases:` block. Scan only that block so the service
-# `name:` entries (leaseboard-admin, leaseboard-board) aren't mistaken for
-# database/role names. Render resource names may contain hyphens.
+# render.yaml: validate only the managed database's `databaseName` and `user`, in
+# the top-level `databases:` block. The resource `name:` entries are Render labels
+# (e.g. leaseboard-db, leaseboard-admin), not database or role names, so they are
+# not checked.
 RENDER_YAML = "render.yaml"
 RENDER_PATTERNS = [
-  /^\s*-?\s*name:\s*([a-z][a-z0-9_-]*)/,
-  /^\s*-?\s*databaseName:\s*([a-z][a-z0-9_-]*)/,
-  /^\s*-?\s*user:\s*([a-z][a-z0-9_-]*)/
+  /^\s*-?\s*databaseName:\s*([a-z][a-z0-9_]*)/,
+  /^\s*-?\s*user:\s*([a-z][a-z0-9_]*)/
 ].freeze
-
-# Legacy names still in config until the single-database migration finishes.
-# This set is a TEMPORARY shim: it lets names that predate the migration stay
-# green while the rename lands across PRs. Adding to it is a Tier 1 change
-# (needs Ron). #59 Task 2 (Rails) and #60 (the board) must empty it, and this
-# whole PENDING_MIGRATION mechanism is deleted once it is empty.
-PENDING_MIGRATION = {
-  "leaseboard"        => "container superuser → postgres (board config + CI board job, #60)",
-  "board_dev"         => "apps/board/config/dev.exs → reader_dev/leaseboard_dev (#60)",
-  "board_test"        => "apps/board/config/test.exs → reader_test/leaseboard_test (#60)",
-  "leaseboard-db"     => "render.yaml managed-database resource name (reconciled at deploy)"
-}.freeze
 
 def scan(path, patterns, allowed, violations)
   return unless File.exist?(File.join(ROOT, path))
@@ -83,7 +70,7 @@ def scan(path, patterns, allowed, violations)
   text = File.read(File.join(ROOT, path))
   patterns.each do |pattern|
     text.scan(pattern).flatten.each do |name|
-      next if allowed.include?(name) || PENDING_MIGRATION.key?(name)
+      next if allowed.include?(name)
 
       violations << "#{path}: '#{name}' is not in CONTRACT.md's Environments table"
     end
@@ -100,7 +87,7 @@ def check_config_names(allowed)
     block = File.read(render_path)[/^databases:\n.*?(?=^\S)/m].to_s
     RENDER_PATTERNS.each do |pattern|
       block.scan(pattern).flatten.each do |name|
-        next if allowed.include?(name) || PENDING_MIGRATION.key?(name)
+        next if allowed.include?(name)
 
         violations << "#{RENDER_YAML}: '#{name}' is not in CONTRACT.md's Environments table"
       end
@@ -124,15 +111,11 @@ allowed = contract_names
 violations = check_config_names(allowed) + check_board_has_no_migrations
 
 if violations.empty?
-  pending = PENDING_MIGRATION.empty? ? "" : " (#{PENDING_MIGRATION.size} name(s) still pending migration)"
-  puts "contract guard: OK#{pending}"
+  puts "contract guard: OK"
   exit 0
 end
 
 warn "contract guard: FAILED"
 violations.each { |v| warn "  - #{v}" }
 warn "\nEvery database/role must be named in docs/CONTRACT.md's Environments table."
-warn "PENDING_MIGRATION is a temporary shim for names that predate the single-database"
-warn "migration; adding to it is a Tier 1 change (needs Ron). #59 Task 2 and #60 must"
-warn "empty it, after which this whole mechanism is deleted."
 exit 1

@@ -2,71 +2,116 @@
 
 Ron's step-by-step for bringing Leaseboard up on Render and loading content.
 
-The Blueprint (`render.yaml` at the repo root) declares three resources: the
-**admin** web service (Rails, the only writer), the **board** web service
-(Phoenix, read-only, Docker), and one managed **Postgres**. Everything secret is
-`sync: false` — you set it by hand. Keep all three in the same region.
+One database, owned by Rails. The **admin** (Rails) is the only writer; the
+**board** (Phoenix) reads it as the read-only role `reader_prod`. The Blueprint
+(`render.yaml` at the repo root) declares three resources: `leaseboard-admin`
+(Ruby), `leaseboard-board` (Docker) and one managed Postgres (`leaseboard_prod`,
+owner `admin_prod`). Everything secret is `sync: false` — you set it by hand. Keep
+all three in the same region.
+
+## Plans and cost (D-020)
+
+Paid plans for the demo period, billed per second on Render:
+
+- Database `leaseboard_prod`: **`0.1c-256mb`** (Render's current id for the plan
+  formerly called *Basic-256mb*).
+- Both web services: **`0.5c-512mb`** (formerly *Starter*).
+
+Plan ids are from Render's compute-plan reference
+(https://render.com/docs/compute-plans); a paid web plan is required because the
+admin uses a **pre-deploy** command, which the free plan does not run. Downgrade or
+delete the resources after the job search.
 
 ## 1. Create the Blueprint
 
-1. In the Render dashboard: **New → Blueprint**, connect this repository, and pick
-   the default branch. Render reads `render.yaml` and proposes the three resources.
-2. Before the first deploy, set the secrets below (step 2). Deploys that are missing
-   a required variable will fail cleanly — set it and redeploy.
+In the Render dashboard: **New → Blueprint**, connect this repository, pick the
+default branch. Render reads `render.yaml` and provisions the database and the two
+services, prompting for each `sync: false` secret on creation.
 
-## 2. Set the secrets
+Set what you can now (step 3). You can set the board's `DATABASE_URL` later (step
+5) — until then the board stays unhealthy, which is expected.
 
-Generate and set these in the dashboard (each service has its own **Environment**):
+## 2. Create the `reader_prod` role — before the first deploy
 
-**Shared value — `BOARD_READER_PASSWORD`.** Pick a strong password. The admin's
-migration provisions the read-only `board_reader` role with it, and the board
-connects with the **same** value (step 4). Set it on **leaseboard-admin** now.
+The admin's pre-deploy runs `bin/rails db:migrate`, which triggers the
+`db:privileges` hook that **grants** `reader_prod` its read surface. Migrations
+never create roles (CONTRACT.md), so **`reader_prod` must already exist** or that
+grant fails and the deploy fails. Create it as soon as the database is provisioned
+— ideally before the admin finishes building, so the first pre-deploy succeeds.
+
+Open a `psql` session to the database **as the owner `admin_prod`** (use the
+database's *External Connection* string / the dashboard's **PSQL Command**, which
+connects as `admin_prod`), then run, choosing a strong password:
+
+```sql
+CREATE ROLE reader_prod LOGIN PASSWORD '<reader_prod-password>';
+```
+
+Keep that password — the board's `DATABASE_URL` uses it (step 5). The privileges
+script grants everything else (CONNECT, SELECT on the views, EXECUTE on the status
+function); the role needs only `LOGIN` and a password here.
+
+**Do not create `reader_prod` from Render's dashboard.** A user added through the
+dashboard becomes the database's *default user*, which would repoint the admin's
+`DATABASE_URL` (`fromDatabase`) at the read-only role and break writes. Create it
+only with the SQL above, as `admin_prod`.
+
+If `CREATE ROLE` is **refused** (e.g. `admin_prod` lacks `CREATEROLE`): **stop and
+ask Ron.** Render's docs do not state whether the managed-database user can create
+roles, so this runbook does not assume it; don't work around it from the dashboard.
+
+> If the admin's first deploy already failed at the privileges step because
+> `reader_prod` wasn't there yet, that's fine: create the role, then redeploy the
+> admin (step 4).
+
+## 3. Set the secrets
+
+Generate and set these per service (**Environment** tab). The admin's `DATABASE_URL`
+is wired from the database automatically — don't set it.
 
 **leaseboard-admin:**
 
 | Variable | How to get it |
 |---|---|
 | `SECRET_KEY_BASE` | `cd apps/admin && bin/rails secret` |
-| `BOARD_READER_PASSWORD` | the shared value above |
 | `ADMIN_USERNAME`, `ADMIN_PASSWORD` | your choice — HTTP basic auth for the admin |
-| `SANITY_PROJECT_ID`, `SANITY_DATASET`, `SANITY_API_VERSION` | optional; from your Sanity project. Unset ⇒ the listing page shows fallback copy and makes no network call |
-
-(`DATABASE_URL` is wired from the database automatically — don't set it.)
+| `SANITY_PROJECT_ID` | `0dws7msn` |
+| `SANITY_DATASET` | `production` |
+| `SANITY_API_VERSION` | e.g. `2024-01-01` (optional; unset ⇒ fallback copy, no network call) |
 
 **leaseboard-board:**
 
 | Variable | How to get it |
 |---|---|
 | `SECRET_KEY_BASE` | `cd apps/board && mix phx.gen.secret` (a **different** value from the admin's) |
-| `PHX_HOST` | the board service's hostname, e.g. `leaseboard-board.onrender.com` (Render shows it after the service is created). Used for `check_origin` and the canonical URL |
-| `DATABASE_URL` | the `board_reader` connection string — build it in step 4 |
+| `PHX_HOST` | the board service's hostname, e.g. `leaseboard-board.onrender.com` (Render shows it once the service exists) — used for `check_origin` and the canonical URL |
+| `DATABASE_URL` | the `reader_prod` connection string — build it in step 5 |
 
-## 3. First deploy (admin + database)
+## 4. First deploy (migrations + privileges)
 
-Let the Blueprint deploy. On the admin, the **pre-deploy** command runs
-`bin/rails db:migrate`, which creates the schema, the status/KPI views, and the
-`board_reader` role (using `BOARD_READER_PASSWORD`). The board service may stay
-unhealthy until step 4 — that's expected.
+With `reader_prod` created, let the admin deploy (or redeploy it). Its pre-deploy
+runs `bin/rails db:migrate`, which migrates the schema and — through the
+`db:privileges` hook — grants `reader_prod` its read surface and locks down the
+status function (`apps/admin/DEPLOY.md`). The admin should go healthy at `/up`.
 
-## 4. Point the board at `board_reader`
+## 5. Point the board at `reader_prod`
 
-Open **leaseboard-db** and copy its **Internal Database URL** (that's the owner
-connection — host, port and database name). Build the board's `DATABASE_URL` by
-swapping the user and password for the read-only role:
+Open **leaseboard-db** and copy its **Internal Database URL** (host, port and
+database name — that URL is the owner's). Build the board's `DATABASE_URL` by
+swapping in the read-only role and its password from step 2:
 
 ```
-postgres://board_reader:<BOARD_READER_PASSWORD>@<internal-host>:<port>/<database>
+postgres://reader_prod:<reader_prod-password>@<internal-host>:<port>/leaseboard_prod
 ```
 
-Set it as `DATABASE_URL` on **leaseboard-board** and trigger a redeploy. Use the
-**internal** host so the board reaches the database over Render's private network.
+Set it as `DATABASE_URL` on **leaseboard-board** and redeploy. Use the **internal**
+host so the board reaches the database over Render's private network. The board
+connects read-only and its `Postgrex.Notifications` listener uses the same URL, so
+a lease change in the admin reaches the board within a second.
 
-The board connects read-only and its `Postgrex.Notifications` listener uses the
-same URL, so a lease change in the admin flows to the board within a second.
+## 6. Seed the demo data — once
 
-## 5. Seed the demo data — once
-
-`db:seed` is destructive (it clears and regenerates), so it's gated. From a
+`db:seed` is destructive (it clears and regenerates), so it is gated. From a
 **leaseboard-admin** shell, run it once:
 
 ```sh
@@ -74,22 +119,16 @@ ALLOW_SEED_RESET=1 bin/rails db:seed
 ```
 
 Don't make `ALLOW_SEED_RESET` a persistent variable, and never add seeding to the
-build or release commands — a redeploy would wipe live data.
+build or pre-deploy commands — a redeploy would wipe live data.
 
-## 6. Import the Sanity listing content
+## 7. Import the Sanity listing content
 
-Loads the three `propertyListing` documents (one per seeded property) and their
-placeholder images into the Studio's dataset. Run this **once**, after the Rails
-seed has created the properties (the slugs must match) — content and database are
-independent, so the order between them doesn't otherwise matter.
+Loads the three `propertyListing` documents and their placeholder images into the
+Sanity dataset. Run once, after the seed (the slugs must match the seeded
+properties).
 
-Prerequisites:
-
-- A Sanity project and dataset (e.g. `production`) exist, and the Studio is
-  configured with the project id (`studio/.env.local` locally, or the deploy
-  environment).
-- You're authenticated: `npx sanity login`, or set `SANITY_AUTH_TOKEN` to a
-  token with write access to the dataset.
+Prerequisites: the Studio is configured for project `0dws7msn`, and you're
+authenticated (`npx sanity login`, or `SANITY_AUTH_TOKEN` with write access).
 
 From the `studio/` directory:
 
@@ -101,26 +140,18 @@ npx sanity dataset import seed-content/listings.ndjson production --replace --dr
 npx sanity dataset import seed-content/listings.ndjson production --replace
 ```
 
-Notes:
+`--replace` upserts by document id (`listing-<slug>`), so re-running is safe. The
+image paths are relative to `seed-content/`, which is the import tool's asset base;
+run it from `studio/` exactly as above. See `studio/seed-content/README.md` to
+regenerate the content.
 
-- `--replace` upserts by document id (`listing-<slug>`), so re-running is safe
-  and idempotent.
-- The image paths in `listings.ndjson` are relative to `seed-content/`, which is
-  where the import tool resolves assets from (it uses the NDJSON file's directory
-  as the asset base). Run the command from `studio/` exactly as above.
-- To regenerate the content first, see `studio/seed-content/README.md`.
-
-After importing, the public listing page for each property renders its headline,
-description, amenities and photos; the live available-unit count still comes from
-Postgres.
-
-## 7. Verify
+## 8. Verify
 
 - **Admin** — `https://<admin-host>/up` returns 200; the admin UI loads behind
   basic auth; `/rent_roll` works.
 - **Board** — `https://<board-host>/healthz` returns `ok`; `/` lists the three
   properties with KPIs; a property page shows the unit grid and charts.
 - **Live update** — give notice on a lease in the admin and watch the board page
-  update within a second (this is the `scripts/demo` flow, run against production).
+  update within a second.
 - **Listings** — `https://<admin-host>/listings/<slug>` renders the Sanity content;
   with `SANITY_*` unset it still renders fallback copy.
