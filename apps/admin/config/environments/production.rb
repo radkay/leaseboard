@@ -15,6 +15,14 @@ Rails.application.configure do
   # Turn on fragment caching in view templates.
   config.action_controller.perform_caching = true
 
+  # Cache store: in-memory, per process. Solid Cache was skipped (D-008) and we avoid Redis
+  # (the app leans on Postgres/LISTEN-NOTIFY instead), so an in-memory store is the
+  # dependency-free choice. The only thing cached is the 5-minute Sanity listing content,
+  # which is non-critical and safe to recompute, so a per-instance cache is fine for the
+  # single-instance demo. A multi-instance deployment would switch to a shared store
+  # (Solid Cache or Redis).
+  config.cache_store = :memory_store
+
   # Cache assets for far-future expiry since they are all digest stamped.
   config.public_file_server.headers = { "cache-control" => "public, max-age=#{1.year.to_i}" }
 

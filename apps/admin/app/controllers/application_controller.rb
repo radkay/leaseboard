@@ -7,9 +7,18 @@ class ApplicationController < ActionController::Base
 
   # HTTP basic auth is the full extent of admin authentication (SPEC §8). Credentials
   # come from the environment; the local fallbacks are placeholders, not secrets, and
-  # production must set ADMIN_USERNAME / ADMIN_PASSWORD (Render env vars).
+  # production must set ADMIN_USERNAME / ADMIN_PASSWORD (Render env vars). Public pages
+  # (the property listings) opt out via public_request?.
   http_basic_authenticate_with(
     name: ENV["ADMIN_USERNAME"] || "admin",
-    password: ENV["ADMIN_PASSWORD"] || "change-me"
+    password: ENV["ADMIN_PASSWORD"] || "change-me",
+    unless: :public_request?
   )
+
+  private
+
+  # Overridden to true by controllers served outside basic auth.
+  def public_request?
+    false
+  end
 end
