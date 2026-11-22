@@ -17,7 +17,7 @@ defmodule Board.OccupancyChartsTest do
       Seeds.insert_lease(studio_a, resident_id, status: "active")
       Seeds.insert_lease(two_bed, resident_id, status: "active")
 
-      assert [studio, two] = Occupancy.list_unit_type_kpis(property_id)
+      [studio, two] = as_reader(fn -> Occupancy.list_unit_type_kpis(property_id) end)
 
       assert studio.bedrooms == 0
       assert studio.total_units == 2
@@ -54,7 +54,7 @@ defmodule Board.OccupancyChartsTest do
         end_offset: 120
       )
 
-      series = Occupancy.list_lease_expirations(property_id)
+      series = as_reader(fn -> Occupancy.list_lease_expirations(property_id) end)
 
       assert length(series) == 12
       assert hd(series).month == Date.beginning_of_month(Date.utc_today())

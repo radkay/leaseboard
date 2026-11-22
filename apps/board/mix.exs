@@ -83,21 +83,13 @@ defmodule Board.MixProject do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
     [
-      setup: ["deps.get", "ecto.setup", "assets.setup", "assets.build"],
-      "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
-      "ecto.reset": ["ecto.drop", "ecto.setup"],
-      # The board never defines the schema: Rails owns it and dumps it to
-      # apps/admin/db/structure.sql. The test database is loaded from that dump
-      # (the views and the status function the board reads), so both apps test
-      # against one definition. --skip-if-loaded makes re-runs against an
-      # already-loaded local database a no-op; CI starts from an empty database
-      # and loads every time. Drop the local DB (mix ecto.drop) to pick up a
-      # changed dump.
-      test: [
-        "ecto.create --quiet",
-        "ecto.load --dump-path ../admin/db/structure.sql --skip-if-loaded --quiet",
-        "test"
-      ],
+      # The board owns no database: Rails creates and loads both leaseboard_dev and
+      # leaseboard_test (db/bootstrap + schema load), and the board connects to them
+      # read-only. So `mix setup` installs deps and builds assets — it does NOT
+      # create a database — and there is no ecto.setup/ecto.reset. See README.md.
+      setup: ["deps.get", "assets.setup", "assets.build"],
+      # No `test` alias: the database is prepared outside the board (CONTRACT.md),
+      # so `mix test` runs the standard task with no ecto.create/ecto.load.
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
       "assets.build": ["compile", "tailwind board", "esbuild board"],
       "assets.deploy": [

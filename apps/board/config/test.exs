@@ -1,15 +1,23 @@
 import Config
 
-# Configure your database
+# The board's tests run against the shared `leaseboard_test` database (CONTRACT.md
+# Environments table), created by db/bootstrap and loaded by Rails — the board no
+# longer creates or loads it.
 #
-# The MIX_TEST_PARTITION environment variable can be used
-# to provide built-in test partitioning in CI environment.
-# Run `mix help test` for more information.
+# The Repo connects as the owner `admin_test` so the test harness can insert
+# fixtures (the board itself has no write schemas). The board's real query
+# functions are then run as the reader via `SET LOCAL ROLE reader_test`, inside
+# the sandbox transaction, proving they work with only the reader's grants — see
+# Board.DataCase.as_reader/1. The owner password comes from the environment.
+#
+# No MIX_TEST_PARTITION suffix: there is one shared test database, not one per
+# partition.
 config :board, Board.Repo,
-  username: System.get_env("POSTGRES_USER", "leaseboard"),
-  password: System.get_env("POSTGRES_PASSWORD", "local_dev_only"),
+  username: "admin_test",
+  password: System.get_env("ADMIN_TEST_PASSWORD"),
   hostname: System.get_env("POSTGRES_HOST", "db"),
-  database: "board_test#{System.get_env("MIX_TEST_PARTITION")}",
+  port: String.to_integer(System.get_env("POSTGRES_PORT", "5432")),
+  database: "leaseboard_test",
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: System.schedulers_online() * 2
 

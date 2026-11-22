@@ -1,14 +1,16 @@
 import Config
 
-# Configure your database.
-# Credentials and host come from the same environment the compose `db` service
-# is configured with (.env.example), so dev config has a single source of truth
-# and CI can point at its own Postgres service by overriding POSTGRES_HOST.
+# The board reads the shared development database `leaseboard_dev` as its reader
+# role `reader_dev` (CONTRACT.md Environments table). Rails owns and creates the
+# database (db/bootstrap + schema load); the board never writes and never creates
+# a database. The reader password comes from the environment (.env locally, CI
+# env in CI); the host is shared with the compose `db` service.
 config :board, Board.Repo,
-  username: System.get_env("POSTGRES_USER", "leaseboard"),
-  password: System.get_env("POSTGRES_PASSWORD", "local_dev_only"),
+  username: "reader_dev",
+  password: System.get_env("READER_DEV_PASSWORD"),
   hostname: System.get_env("POSTGRES_HOST", "db"),
-  database: "board_dev",
+  port: String.to_integer(System.get_env("POSTGRES_PORT", "5432")),
+  database: "leaseboard_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
