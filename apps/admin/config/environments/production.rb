@@ -78,6 +78,10 @@ Rails.application.configure do
   # Only use :id for inspections in production.
   config.active_record.attributes_for_inspect = [ :id ]
 
+  # Index pages mark their relations strict_loading to catch N+1 in dev/test (which
+  # raise). In production, log a missed preload instead of erroring a page.
+  config.active_record.action_on_strict_loading_violation = :log
+
   # Enable DNS rebinding protection and other `Host` header attacks.
   # config.hosts = [
   #   "example.com",     # Allow requests from example.com
