@@ -24,28 +24,31 @@ module BoardReaderRole
     grant_reads!(connection)
   end
 
-  # Race-safe create-or-update of a login role. A check-then-create (IF NOT EXISTS …
-  # CREATE) races under parallel processes because roles are cluster-wide: two sessions
-  # can both pass the existence check and CREATE, hitting a duplicate key on pg_authid.
-  # Instead, attempt CREATE and fall back to ALTER on a duplicate, which is also safe if
-  # two deploys run migrations at once (R-016). `name` is always a trusted constant.
+  # Create-or-update a login role, race-safe when the cluster-wide role is set up from
+  # many databases at once (Rails runs each parallel test worker in its own database, so a
+  # per-database advisory lock can't serialise them — R-016). The DO block swallows a
+  # duplicate from a concurrent CREATE; the retry handles "tuple concurrently updated" from
+  # concurrent ALTERs on the shared pg_authid row. `name` is always a trusted constant.
   def create_or_update_role!(connection, name:, password:)
     quoted_password = connection.quote(password)
-    connection.execute(<<~SQL)
-      DO $$
-      BEGIN
-        CREATE ROLE #{name} WITH LOGIN PASSWORD #{quoted_password};
-      EXCEPTION
-        WHEN duplicate_object OR unique_violation THEN
-          ALTER ROLE #{name} WITH LOGIN PASSWORD #{quoted_password};
-      END
-      $$;
-    SQL
+    with_retry_on_role_contention do
+      connection.execute(<<~SQL)
+        DO $$
+        BEGIN
+          CREATE ROLE #{name} WITH LOGIN PASSWORD #{quoted_password};
+        EXCEPTION
+          WHEN duplicate_object OR unique_violation THEN
+            ALTER ROLE #{name} WITH LOGIN PASSWORD #{quoted_password};
+        END
+        $$;
+      SQL
+    end
   end
 
   # (Re-)applies exactly the read grants board_reader needs. Idempotent, and must be
   # re-run after any of the views is dropped and recreated (dropping a view drops its
-  # grants), which is why the status-view migrations call it.
+  # grants), which is why the status-view migrations call it. These objects are all
+  # per-database, so parallel workers grant on their own copies and don't contend.
   def grant_reads!(connection)
     return unless connection.select_value("SELECT 1 FROM pg_roles WHERE rolname = '#{NAME}'")
 
@@ -66,5 +69,26 @@ module BoardReaderRole
 
     connection.execute("REVOKE ALL ON ALL TABLES IN SCHEMA public FROM #{NAME}")
     connection.execute("REVOKE ALL ON SCHEMA public FROM #{NAME}")
+  end
+
+  # Retries a few times on the transient errors Postgres raises when the same cluster-wide
+  # role is created/altered from concurrent sessions. Safe only outside an open
+  # transaction (migrations are already serialised by Rails' own migration lock).
+  def with_retry_on_role_contention
+    attempts = 0
+    begin
+      yield
+    rescue ActiveRecord::StatementInvalid => e
+      attempts += 1
+      raise if attempts > 5 || !role_contention?(e)
+
+      sleep(0.02 * attempts)
+      retry
+    end
+  end
+
+  def role_contention?(error)
+    message = error.message
+    message.include?("tuple concurrently updated") || message.include?("duplicate key value")
   end
 end
