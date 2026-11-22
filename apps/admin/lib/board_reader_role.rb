@@ -21,8 +21,6 @@ module BoardReaderRole
     raise ArgumentError, "board_reader password is required" if password.to_s.empty?
 
     quoted_password = connection.quote(password)
-    database = %("#{connection.current_database}")
-
     connection.execute(<<~SQL)
       DO $$
       BEGIN
@@ -35,6 +33,16 @@ module BoardReaderRole
       $$;
     SQL
 
+    grant_reads!(connection)
+  end
+
+  # (Re-)applies exactly the read grants board_reader needs. Idempotent, and must be
+  # re-run after any of the views is dropped and recreated (dropping a view drops its
+  # grants), which is why the status-view migrations call it.
+  def grant_reads!(connection)
+    return unless connection.select_value("SELECT 1 FROM pg_roles WHERE rolname = '#{NAME}'")
+
+    database = %("#{connection.current_database}")
     # Start from nothing, then grant exactly what the board reads.
     connection.execute("REVOKE ALL ON SCHEMA public FROM #{NAME}")
     connection.execute("GRANT CONNECT ON DATABASE #{database} TO #{NAME}")

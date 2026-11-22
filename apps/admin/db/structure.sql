@@ -28,13 +28,13 @@ COMMENT ON EXTENSION btree_gist IS 'support for indexing common datatypes in GiS
 -- Name: unit_status_as_of(date); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.unit_status_as_of(as_of date) RETURNS TABLE(unit_id bigint, property_id bigint, unit_number character varying, bedrooms integer, market_rent numeric, status text, current_resident_id bigint, current_monthly_rent numeric, current_lease_end_date date, notice_date date, move_out_date date, next_lease_start_date date, as_of date)
+CREATE FUNCTION public.unit_status_as_of(as_of date) RETURNS TABLE(unit_id bigint, property_id bigint, unit_number character varying, bedrooms integer, market_rent numeric, status text, current_lease_id bigint, current_monthly_rent numeric, current_lease_end_date date, notice_date date, move_out_date date, next_lease_start_date date, as_of date)
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'pg_catalog', 'public'
     AS $$
   WITH current_lease AS (
     SELECT DISTINCT ON (l.unit_id)
-      l.unit_id, l.status, l.resident_id, l.monthly_rent, l.end_date, l.notice_date, l.move_out_date
+      l.unit_id, l.id, l.resident_id, l.status, l.monthly_rent, l.end_date, l.notice_date, l.move_out_date
     FROM leases l
     WHERE l.status IN ('active', 'notice_given')
       AND as_of BETWEEN l.start_date AND l.end_date
@@ -55,7 +55,8 @@ CREATE FUNCTION public.unit_status_as_of(as_of date) RETURNS TABLE(unit_id bigin
       WHEN cl.unit_id IS NULL AND np.unit_id IS NOT NULL THEN 'vacant_rented'
       ELSE 'vacant_available'
     END,
-    cl.resident_id, cl.monthly_rent, cl.end_date, cl.notice_date, cl.move_out_date,
+    cl.id,
+    cl.monthly_rent, cl.end_date, cl.notice_date, cl.move_out_date,
     np.start_date, as_of
   FROM units u
   LEFT JOIN current_lease cl ON cl.unit_id = u.id
@@ -223,7 +224,7 @@ CREATE VIEW public.unit_status_today AS
     move_out_date,
     next_lease_start_date,
     as_of
-   FROM public.unit_status_as_of(CURRENT_DATE) unit_status_as_of(unit_id, property_id, unit_number, bedrooms, market_rent, status, current_resident_id, current_monthly_rent, current_lease_end_date, notice_date, move_out_date, next_lease_start_date, as_of);
+   FROM public.unit_status_as_of(CURRENT_DATE) unit_status_as_of(unit_id, property_id, unit_number, bedrooms, market_rent, status, current_lease_id, current_monthly_rent, current_lease_end_date, notice_date, move_out_date, next_lease_start_date, as_of);
 
 
 --
@@ -497,6 +498,7 @@ ALTER TABLE ONLY public.leases
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20261122012444'),
 ('20261122005325'),
 ('20261122002440'),
 ('20261122001704'),

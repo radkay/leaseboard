@@ -73,12 +73,15 @@ class RentRoll
   end
 
   def fetch
+    # The status function returns the current lease id (not resident data); the rent roll,
+    # as an admin query, joins that to residents itself for the name column.
     sql = ActiveRecord::Base.sanitize_sql_array([ <<~SQL, as_of, property.id ])
       SELECT s.unit_number, s.bedrooms, s.status, s.market_rent,
              s.current_monthly_rent, s.current_lease_end_date,
              CASE WHEN r.id IS NULL THEN NULL ELSE r.first_name || ' ' || r.last_name END AS resident_name
       FROM unit_status_as_of(?) s
-      LEFT JOIN residents r ON r.id = s.current_resident_id
+      LEFT JOIN leases cl ON cl.id = s.current_lease_id
+      LEFT JOIN residents r ON r.id = cl.resident_id
       WHERE s.property_id = ?
       ORDER BY s.unit_number
     SQL
