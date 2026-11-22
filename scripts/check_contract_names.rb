@@ -74,7 +74,6 @@ PENDING_MIGRATION = {
   "leaseboard"        => "container superuser → postgres (board config + CI board job, #60)",
   "board_dev"         => "apps/board/config/dev.exs → reader_dev/leaseboard_dev (#60)",
   "board_test"        => "apps/board/config/test.exs → reader_test/leaseboard_test (#60)",
-  "admin_development" => "apps/admin/config/database.yml → leaseboard_dev (#59 Task 2)",
   "leaseboard-db"     => "render.yaml managed-database resource name (reconciled at deploy)"
 }.freeze
 
