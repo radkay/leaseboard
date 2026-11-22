@@ -93,4 +93,6 @@ technology" (SPEC §2):
 This is a weekend build, so some production practices are deliberately out of scope. A true
 production setup would add a staging environment: `dev` deployed automatically to staging
 for verification, and `main` promoted to production only after it passes there. Here, the
-`dev` branch and the checkpoint PRs into `main` play that role.
+`dev` branch and the checkpoint PRs into `main` play that role. The first checkpoint exposed
+a race that had passed by chance on every PR; a production setup would add a staging
+environment and GitHub's merge queue, so `main` only ever receives verified merges.
