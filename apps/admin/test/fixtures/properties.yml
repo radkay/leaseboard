@@ -1,0 +1,8 @@
+# units_count is a counter cache; set here to match the unit fixtures below.
+sunset:
+  name: Sunset Apartments
+  address: 100 Main St
+  city: Austin
+  state: TX
+  sanity_slug: sunset-apartments
+  units_count: 2

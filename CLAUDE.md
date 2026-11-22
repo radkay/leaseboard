@@ -46,9 +46,13 @@ Everything else (code, tests, docs inside the agreed scope) you may do without a
 - TypeScript schema. GROQ queries live in one Rails module with a timeout and a fallback.
 
 ## Logs you must keep (these are the exhibit)
-1. **docs/DECISIONS.md.** Add an entry for every decision: `D-###`, date, decision, options considered,
-   why, and Ron's words when he made the call. Pin tool and framework versions here at setup.
-2. **docs/REVIEW-LOG.md.** When Ron rejects or corrects your code, record it: `R-###`, date, file,
+Every decision and every correction earns an entry. Entries are **proposed in the PR that
+earns them** (in a "Log entries" section — see Working rhythm); the files below are written
+only by the checkpoint PR into `main`, which adds all proposed entries numbered in order, in
+one commit. Feature PRs do not edit these files, so concurrent PRs never conflict in them.
+1. **docs/DECISIONS.md.** One entry per decision: `D-###`, date, decision, options considered,
+   why, and Ron's words when he made the call. Tool and framework versions were pinned here at setup.
+2. **docs/REVIEW-LOG.md.** When Ron rejects or corrects your code: `R-###`, date, file,
    what you produced, what was wrong (idiom, performance, correctness, security), and the fix.
    Record it honestly, including your own mistakes. This log is the most important artifact.
 
@@ -59,12 +63,18 @@ Everything else (code, tests, docs inside the agreed scope) you may do without a
 - CI must be green before any merge to `main`.
 
 ## Working rhythm
-For each task: restate the goal in one line → write your estimate in the PR → write the tests
-→ implement → run tests and lint → push a feature branch → open a PR into `dev` → enable
+For each task: restate the goal in one line → write **two estimates** in the PR → write the
+tests → implement → run tests and lint → push a feature branch → open a PR into `dev` → enable
 auto-merge (`gh pr merge --auto --rebase`) → record the actual time in the PR.
+- **Two estimates, every time.** Give **human time** (what a senior engineer would take) and
+  **agent time** (what you expect to take). Record the actual (agent wall-clock) against both,
+  so the record shows the human baseline, the agent's prediction, and what it actually took
+  (D-014).
 - Stop-and-ask items that Ron has not pre-approved: label the PR `needs-ron`, do not enable
   auto-merge, put the question under a "Questions for Ron" heading, and continue with work that
   does not depend on it.
 - Only Ron merges into `main`. `dev → main` PRs use a merge commit.
-- Propose D-### and R-### entries in the PR description; they are added to the log files in the
-  PR itself, with "Ron:" left blank unless he said it verbatim.
+- Propose D-### and R-### entries in a "Log entries" section of the PR description; do **not**
+  edit DECISIONS.md or REVIEW-LOG.md in a feature PR. The checkpoint PR into `main` writes all
+  proposed entries to the log files, numbered in order, in one commit, with "Ron:" left blank
+  unless he said it verbatim.

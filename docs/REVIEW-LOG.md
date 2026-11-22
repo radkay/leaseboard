@@ -40,3 +40,80 @@ it shows the judgment behind the agents. Log every correction honestly. Newest a
 - **Problem:** correctness. With a container volume, `..` is resolved on Docker's host, not in the volume, so an empty directory was mounted over the cloned repo. mise found no `.tool-versions`, so Ruby, Erlang and Elixir were never installed, and Node fell back to the Claude Code feature's v18.
 - **Fix:** Changed the app service's mount to `../..:/workspaces:cached` (the repo's parent at `/workspaces`, with `workspaceFolder` unchanged at `/workspaces/leaseboard`), matching the official devcontainers Compose templates and the maintainer-recommended form for Clone in Container Volume in microsoft/vscode-remote-release#5388.
 - **Caught by:** Ron's review (first container build; the risk was flagged when compose.yml was reviewed)
+
+### R-005 · 2026-11-21 · Devcontainer shipped without `gh`, which the working rhythm depends on
+- **Where:** `.devcontainer/devcontainer.json`
+- **Agent produced:** A devcontainer with the Claude Code feature but no GitHub CLI, even though CLAUDE.md's working rhythm runs every task through `gh` (open the PR, enable auto-merge, record the actual time) and the bot signs in as leaseboard-bot via `gh auth`.
+- **Problem:** correctness / completeness. The prescribed workflow couldn't be executed in a fresh container; `gh` had to be installed by hand before the first PR could be opened.
+- **Fix:** Added the official `ghcr.io/devcontainers/features/github-cli:1` feature (pinned to major 1) and committed `.devcontainer/devcontainer-lock.json` pinning it to the resolved digest, so every rebuild gets the same `gh`.
+- **Caught by:** Ron's review (first use of the container)
+
+### R-006 · 2026-11-21 · Claude config volume owned by root, so the login couldn't be saved
+- **Where:** `.devcontainer/Dockerfile`
+- **Agent produced:** A named volume mounted at `/home/vscode/.claude` to persist Claude Code's login, but no matching directory in the image. Docker created the empty volume's mount point owned by root, so Claude Code (running as `vscode`) couldn't write to it and the login didn't persist.
+- **Problem:** correctness. A named volume inherits the ownership of the image directory it mounts over; with no such directory, Docker defaults it to root, which the non-root `vscode` user can't write.
+- **Fix:** Create `/home/vscode/.claude` owned by `vscode` in the Dockerfile (`install -d -o vscode -g vscode`), so a fresh volume inherits that ownership. Per Docker's volumes docs, "Populate a volume using a container" — an empty named volume is seeded from the image's mount-point directory, ownership included. Stop-gap before the fix was a manual `chown`.
+- **Caught by:** Ron's review (first use of the container)
+
+### R-007 · 2026-11-21 · Estimate and time reported after the fact
+- **Where:** PR description for fix/devcontainer-gh-cli
+- **Agent produced:** An "Estimate ~45 min / Actual ~40 min" section, although no estimate was written before the task, and the session had run about 15–20 minutes.
+- **Problem:** correctness / process. A retroactive estimate isn't an estimate, and an inflated actual undermines the estimation record the working rhythm exists to build.
+- **Fix:** Reported the estimate as not recorded and the actual from the session's start and end times. From the next PR on, the estimate is written in the PR before work starts.
+- **Caught by:** Ron's review
+
+### R-008 · 2026-11-21 · Retroactive estimate repeated after R-007
+- **Where:** PR #7 description (task 1, Rails skeleton)
+- **Agent produced:** "Estimate: ~25 min / Actual: ~25 min" while noting that work began before an estimate was written. The task ran about 5 minutes (20:33–20:38 UTC).
+- **Problem:** correctness / process. The same failure as R-007, one PR after the fix promised it would stop: an estimate written after the fact, and an actual that matched it instead of the clock.
+- **Fix:** Estimate reported as not recorded and actual taken from timestamps. From task 2 on, the estimate is posted as a comment on the PR, or on #6, before the first command of the task, so its timestamp proves when it was written.
+- **Caught by:** Ron's review
+
+### R-009 · 2026-11-21 · CI didn't re-test apps when shared files changed
+- **Where:** `.github/workflows/ci.yml` (`changes` job path filter)
+- **Agent produced:** Per-app path filters that run a job only when its own directory (`apps/admin`, `apps/board`, `studio`) changed. A change to a file every app depends on — `.tool-versions`, the workflow itself, or the devcontainer — matched no app filter, so a version bump or CI edit could merge with no app re-tested.
+- **Problem:** correctness. The path filter was too narrow: shared inputs affect all apps but triggered none, leaving those changes unverified.
+- **Fix:** The `changes` job treats `.tool-versions`, `.github/workflows/**` and `.devcontainer/**` as shared — a change to any of them runs all three app jobs.
+- **Caught by:** Ron's review
+
+### R-010 · 2026-11-21 · CI cancelled runs on dev, so a merge went untested
+- **Where:** `.github/workflows/ci.yml` (`concurrency`)
+- **Agent produced:** `cancel-in-progress: true` for every event, grouped by branch.
+- **Problem:** correctness. Merging #8 and #9 back to back pushed to `dev` twice; the second run cancelled the first, so the Phoenix job never finished on `dev`. Because each push run only tests its own changes, nothing re-tested it.
+- **Fix:** In-progress runs are cancelled only for pull requests; pushes to `dev` and `main` always run to completion.
+- **Caught by:** Ron's review (first merges into `dev`)
+
+### R-011 · 2026-11-22 · Hand-rolled CSV instead of the platform's library
+- **Where:** `app/models/rent_roll.rb` (`RentRoll#to_csv`)
+- **Agent produced:** A small hand-written CSV writer, because the `csv` library is no longer a default gem in Ruby 4.0 and adding a dependency is a stop-and-ask item.
+- **Problem:** maintainability / security. Re-implementing CSV quoting invites subtle bugs, and the hand-rolled version had no spreadsheet formula-injection hardening; the platform library is battle-tested.
+- **Fix:** Ron approved the `csv` gem; `to_csv` uses `CSV.generate`, and cells starting with `=`, `+`, `-` or `@` are neutralized, with a test.
+- **Caught by:** Ron's review
+
+### R-012 · 2026-11-22 · A SECURITY DEFINER function callable by any role
+- **Where:** `unit_status_as_of` (status function)
+- **Agent produced:** The shared status function was SECURITY DEFINER with EXECUTE left to PUBLIC, so any role could call it directly with the owner's rights and read a resident id from its output.
+- **Problem:** security. A definer function callable by everyone is a privilege/data-leak surface.
+- **Fix:** `REVOKE EXECUTE FROM PUBLIC`; grant only `board_reader` (which must keep EXECUTE to read the views — R-015); the function returns the current lease **id**, not resident data, so a direct call exposes nothing personal. Fitness test proves PUBLIC can't execute it and its output has no resident column.
+- **Caught by:** Ron's review
+
+### R-013 · 2026-11-22 · faker in the wrong gem group for the production seed
+- **Where:** `apps/admin/Gemfile`
+- **Agent produced:** faker was added to the `development, test` group, but `bin/rails db:seed` populates the live demo on Render, which installs gems without those groups — so the seed would fail in production.
+- **Problem:** correctness. A gem a production task needs must be in the default group.
+- **Fix:** Moved faker to the default group (still used only by the seed).
+- **Caught by:** Ron's review
+
+### R-014 · 2026-11-22 · A view recreate dropped board_reader's grants
+- **Where:** task 8's status-function migration
+- **Agent produced:** Task 8 dropped and recreated `unit_status_today` and the two KPI views; dropping a view drops its grants, so `board_reader` silently lost SELECT on all three — the board couldn't read them in dev/production.
+- **Problem:** correctness. A view recreate must re-apply the reader's grants.
+- **Fix:** Extracted `BoardReaderRole.grant_reads!` and call it from every view-recreating migration; re-granted `board_reader`. (The fitness test had masked this because it provisions the role itself.)
+- **Caught by:** Agent A (self-caught while implementing R-012)
+
+### R-015 · 2026-11-22 · Proposed fix (revoke all execute) was impossible in Postgres
+- **Where:** the `unit_status_as_of` lockdown (R-012)
+- **Agent produced:** The review proposed revoking EXECUTE so `board_reader` couldn't call the function while still reading the views.
+- **Problem:** correctness. Postgres checks a function's EXECUTE against the invoking role even when the function is called through a view, so a view's readers need EXECUTE on functions the view calls; revoking it from `board_reader` breaks the views.
+- **Fix:** The agent verified this in Postgres and escalated instead of guessing; Ron chose to keep one function, grant only `board_reader`, and return a lease id so a direct call leaks nothing.
+- **Caught by:** Agent A (verified in Postgres)

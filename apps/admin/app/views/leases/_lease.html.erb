@@ -1,0 +1,42 @@
+<div id="<%= dom_id lease %>">
+  <div>
+    <strong>Unit:</strong>
+    <%= "#{lease.unit.property.name} — #{lease.unit.number}" %>
+  </div>
+
+  <div>
+    <strong>Resident:</strong>
+    <%= lease.resident.full_name %>
+  </div>
+
+  <div>
+    <strong>Start date:</strong>
+    <%= lease.start_date %>
+  </div>
+
+  <div>
+    <strong>End date:</strong>
+    <%= lease.end_date %>
+  </div>
+
+  <div>
+    <strong>Monthly rent:</strong>
+    <%= lease.monthly_rent %>
+  </div>
+
+  <div>
+    <strong>Status:</strong>
+    <%= lease.status %>
+  </div>
+
+  <div>
+    <strong>Notice date:</strong>
+    <%= lease.notice_date %>
+  </div>
+
+  <div>
+    <strong>Move out date:</strong>
+    <%= lease.move_out_date %>
+  </div>
+
+</div>

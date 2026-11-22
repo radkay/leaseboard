@@ -1,0 +1,35 @@
+<p style="color: green"><%= notice %></p>
+<p style="color: red"><%= alert %></p>
+
+<%= render @lease %>
+
+<% if @lease.active? %>
+  <fieldset>
+    <legend>Give notice</legend>
+    <%= form_with url: give_notice_lease_path(@lease), method: :post do |form| %>
+      <%= form.label :move_out_date, "Move-out date" %>
+      <%= form.date_field :move_out_date, required: true %>
+      <%= form.submit "Give notice" %>
+    <% end %>
+  </fieldset>
+<% end %>
+
+<% unless @lease.ended? %>
+  <fieldset>
+    <legend>Sign renewal</legend>
+    <%= form_with url: sign_renewal_lease_path(@lease), method: :post do |form| %>
+      <%= form.label :new_end_date, "New end date" %>
+      <%= form.date_field :new_end_date, required: true %>
+      <%= form.label :monthly_rent, "Monthly rent" %>
+      <%= form.number_field :monthly_rent, step: :any, required: true %>
+      <%= form.submit "Sign renewal" %>
+    <% end %>
+  </fieldset>
+<% end %>
+
+<div>
+  <%= link_to "Edit this lease", edit_lease_path(@lease) %> |
+  <%= link_to "Back to leases", leases_path %>
+
+  <%= button_to "Destroy this lease", @lease, method: :delete %>
+</div>

@@ -1,0 +1,228 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+
+# One run per branch/PR. Cancel superseded runs only on pull requests; pushes to
+# dev and main always run to completion, so every integration commit is tested
+# even when merges land back to back (R-010).
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # Decide which app jobs need to run, from the files this push/PR touched.
+  # Done with plain git so CI adds no action outside the pre-approved set.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      admin: ${{ steps.filter.outputs.admin }}
+      board: ${{ steps.filter.outputs.board }}
+      studio: ${{ steps.filter.outputs.studio }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: filter
+        env:
+          EVENT: ${{ github.event_name }}
+          HEAD_SHA: ${{ github.sha }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          zero="0000000000000000000000000000000000000000"
+          if [ "$EVENT" = "pull_request" ]; then
+            base="$PR_BASE_SHA"
+          elif [ "${PUSH_BEFORE_SHA:-$zero}" != "$zero" ] && git cat-file -e "${PUSH_BEFORE_SHA}^{commit}" 2>/dev/null; then
+            base="$PUSH_BEFORE_SHA"
+          else
+            # First push on a branch (no "before"): fall back to the parent commit.
+            base="$(git rev-parse "${HEAD_SHA}^" 2>/dev/null || echo "$HEAD_SHA")"
+          fi
+          echo "Comparing $base...$HEAD_SHA"
+          changed="$(git diff --name-only "$base" "$HEAD_SHA")"
+          echo "Changed files:"
+          echo "$changed"
+          # Shared inputs that every app depends on: the version pins, the CI
+          # workflow itself, and the devcontainer. A change to any of them runs
+          # all three app jobs, so a version bump or CI/devcontainer edit can't
+          # merge without the apps being re-tested (R-009).
+          shared=false
+          if printf '%s\n' "$changed" | grep -qE "^(\.tool-versions$|\.github/workflows/|\.devcontainer/)"; then
+            shared=true
+          fi
+          echo "Shared inputs changed: $shared"
+          # $3 is an optional extra path regex that also triggers the app (beyond its own
+          # directory and the shared inputs above).
+          emit() {
+            local extra="${3:-}"
+            if [ "$shared" = true ] \
+              || printf '%s\n' "$changed" | grep -qE "^$2/" \
+              || { [ -n "$extra" ] && printf '%s\n' "$changed" | grep -qE "$extra"; }; then
+              echo "$1=true" >> "$GITHUB_OUTPUT"
+              printf '%s -> true\n' "$1"
+            else
+              echo "$1=false" >> "$GITHUB_OUTPUT"
+              printf '%s -> false\n' "$1"
+            fi
+          }
+          emit admin apps/admin
+          # The board reads the Rails-owned views, so re-run it when the schema/views
+          # change (apps/admin/db/structure.sql) even if apps/board itself didn't.
+          emit board apps/board '^apps/admin/db/structure\.sql$'
+          emit studio studio
+
+  admin:
+    name: admin (Rails)
+    needs: changes
+    if: needs.changes.outputs.admin == 'true'
+    runs-on: ubuntu-latest
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgres://leaseboard:local_dev_only@localhost:5432
+    services:
+      postgres:
+        image: postgres:18.7
+        env:
+          POSTGRES_USER: leaseboard
+          POSTGRES_PASSWORD: local_dev_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U leaseboard"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      # setup-ruby reads the version file from its working-directory, but the
+      # single .tool-versions lives at the repo root, so read the Ruby line from
+      # there and pass it explicitly (one source of truth, D-004).
+      - id: ruby-version
+        run: echo "value=$(awk '/^ruby /{print $2}' .tool-versions)" >> "$GITHUB_OUTPUT"
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ steps.ruby-version.outputs.value }}
+          bundler-cache: true
+          working-directory: apps/admin
+      - name: Create test database
+        working-directory: apps/admin
+        run: bin/rails db:create
+      - name: Tests
+        working-directory: apps/admin
+        run: bin/rails test
+      - name: RuboCop
+        working-directory: apps/admin
+        run: bin/rubocop
+      - name: Brakeman
+        working-directory: apps/admin
+        run: bin/brakeman
+
+  board:
+    name: board (Phoenix)
+    needs: changes
+    if: needs.changes.outputs.board == 'true'
+    runs-on: ubuntu-latest
+    env:
+      MIX_ENV: test
+      POSTGRES_HOST: localhost
+      POSTGRES_USER: leaseboard
+      POSTGRES_PASSWORD: local_dev_only
+    services:
+      postgres:
+        image: postgres:18.7
+        env:
+          POSTGRES_USER: leaseboard
+          POSTGRES_PASSWORD: local_dev_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U leaseboard"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        id: beam
+        with:
+          version-file: .tool-versions
+          version-type: strict
+      - name: Cache deps and _build
+        uses: actions/cache@v4
+        with:
+          path: |
+            apps/board/deps
+            apps/board/_build
+          key: board-${{ runner.os }}-otp${{ steps.beam.outputs.otp-version }}-elixir${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('apps/board/mix.lock') }}
+          restore-keys: |
+            board-${{ runner.os }}-otp${{ steps.beam.outputs.otp-version }}-elixir${{ steps.beam.outputs.elixir-version }}-
+      - name: Install dependencies
+        working-directory: apps/board
+        run: mix deps.get
+      - name: Compile (warnings as errors)
+        working-directory: apps/board
+        run: mix compile --warnings-as-errors
+      - name: Format check
+        working-directory: apps/board
+        run: mix format --check-formatted
+      - name: Credo
+        working-directory: apps/board
+        run: mix credo --strict
+      - name: Tests
+        working-directory: apps/board
+        run: mix test
+
+  studio:
+    name: studio (Sanity)
+    needs: changes
+    if: needs.changes.outputs.studio == 'true'
+    runs-on: ubuntu-latest
+    env:
+      # Sanity's CLI telemetry prompt is noise in CI.
+      DO_NOT_TRACK: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .tool-versions
+          cache: npm
+          cache-dependency-path: studio/package-lock.json
+      - name: Install dependencies
+        working-directory: studio
+        run: npm ci
+      - name: Typecheck
+        working-directory: studio
+        run: npx tsc --noEmit
+      - name: Build
+        working-directory: studio
+        run: npm run build
+
+  # Single, always-running gate for the branch protection ruleset. Green only if
+  # every app job succeeded or was skipped (no files for it changed); red if any
+  # failed or was cancelled.
+  ci-ok:
+    name: ci-ok
+    if: always()
+    needs: [changes, admin, board, studio]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all app jobs to pass or skip
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          set -euo pipefail
+          echo "Job results: $RESULTS"
+          for result in $RESULTS; do
+            if [ "$result" = "failure" ] || [ "$result" = "cancelled" ]; then
+              echo "A required job did not pass (saw: $result)."
+              exit 1
+            fi
+          done
+          echo "All app jobs passed or were skipped."
