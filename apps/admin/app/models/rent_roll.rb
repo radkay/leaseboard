@@ -1,3 +1,5 @@
+require "csv"
+
 # The admin rent roll for a property as of a date. One SQL query over the shared
 # unit_status_as_of(date) function (so the status rules match the board), joined to
 # residents for names — admin-only, which is why this reads the function's
@@ -45,28 +47,29 @@ class RentRoll
     rows.sum { |r| r.monthly_rent || 0 }
   end
 
-  # Minimal RFC 4180 CSV. The `csv` library is no longer a default gem in Ruby 4.0, and
-  # adding a dependency is a stop-and-ask item, so this writes the few fields directly.
   def to_csv
-    lines = [ csv_line([ "Unit", "Bedrooms", "Status", "Resident", "Monthly rent", "Market rent", "Lease end" ]) ]
-    rows.each do |r|
-      lines << csv_line([ r.unit_number, r.bedrooms, r.status, r.resident_name, r.monthly_rent, r.market_rent, r.lease_end_date ])
+    CSV.generate do |csv|
+      csv << [ "Unit", "Bedrooms", "Status", "Resident", "Monthly rent", "Market rent", "Lease end" ]
+      rows.each do |r|
+        csv << sanitize([ r.unit_number, r.bedrooms, r.status, r.resident_name,
+                         r.monthly_rent, r.market_rent, r.lease_end_date ])
+      end
+      csv << []
+      csv << sanitize([ "Units", total_units, "Occupied", occupied_units, "Occupancy %",
+                       occupancy_pct, "Scheduled rent", scheduled_rent ])
     end
-    lines << ""
-    lines << csv_line([ "Units", total_units, "Occupied", occupied_units, "Occupancy %", occupancy_pct,
-                       "Scheduled rent", scheduled_rent ])
-    "#{lines.join("\n")}\n"
   end
 
   private
 
-  def csv_line(fields)
-    fields.map { |field| csv_field(field) }.join(",")
-  end
-
-  def csv_field(value)
-    string = value.to_s
-    string.match?(/["\n\r,]/) ? %("#{string.gsub('"', '""')}") : string
+  # Defuse spreadsheet formula injection: a cell beginning with =, +, - or @ is treated as
+  # a formula by Excel/Sheets, so prefix those with an apostrophe. CSV.generate handles the
+  # quoting itself (OWASP CSV injection guidance).
+  def sanitize(fields)
+    fields.map do |value|
+      string = value.to_s
+      string.match?(/\A[=+\-@]/) ? "'#{string}" : value
+    end
   end
 
   def fetch

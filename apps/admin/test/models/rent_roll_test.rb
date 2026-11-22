@@ -36,4 +36,18 @@ class RentRollTest < ActiveSupport::TestCase
       end
     end
   end
+
+  test "neutralizes spreadsheet formula injection in CSV cells" do
+    property = Property.create!(name: "Injection Co", address: "1 A St", city: "Austin", state: "TX")
+    unit = property.units.create!(number: "1", bedrooms: 1, bathrooms: 1, sq_ft: 500, market_rent: 1000)
+    resident = Resident.create!(first_name: "=SUM(1+1)", last_name: "Doe",
+                                email: "inj@example.test", phone: "555-0000")
+    unit.leases.create!(resident: resident, start_date: Date.current - 10, end_date: Date.current + 355,
+                        monthly_rent: 1000, status: :active)
+
+    csv = RentRoll.new(property, as_of: Date.current).to_csv
+
+    assert_includes csv, "'=SUM(1+1) Doe", "formula cell must be prefixed with an apostrophe"
+    assert_no_match(/(^|,)=SUM/, csv, "no cell should start a bare formula")
+  end
 end
