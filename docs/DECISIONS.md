@@ -83,6 +83,36 @@ One entry per decision. Newest at the bottom. Quote Ron's words when he makes th
 - **Why:** Every PR appended to the end of the same two files, so concurrent PRs conflicted. This happened twice with one agent (#7, #11). Adding a second agent (D-005) would make it constant. Writing the logs at checkpoints removes the conflicts and gives Ron one place to review all entries.
 - **Ron:** "Changing how we keep the decision and review logs, before we bring in a second agent. Two PRs (#7, #11) already conflicted in DECISIONS.md because every PR appends to the end of the same file. With two agents working in parallel, that becomes constant rework. From now on, PRs propose log entries in their descriptions, and the checkpoint PR into main writes them to the log files in order, in one commit."
 
+### D-012 · 2026-11-22 · Contract adds unit-type KPIs, a 12-month expirations view, and lease fields on the status view
+- **Decision:** CONTRACT.md gains `property_unit_type_kpis_today` (the D-010 KPIs per property × bedroom count) and `lease_expirations_12m` (a 12-month expirations series per property, split renewed/relet vs open); `unit_status_today` gains `bedrooms`, `market_rent`, the current lease's rent/end/notice/move-out dates, and the next signed lease's start date. No board-read view exposes resident names.
+- **Options considered:** keep the two original views only; add just the expirations view; add unit-type granularity and expirations together (chosen).
+- **Why:** Ron asked for occupancy broken out by unit type and a view of upcoming expirations, and for the status view to carry enough per-unit lease detail for the board's unit cards without re-deriving anything or exposing resident PII.
+- **Ron:** "Let's include 3 and 5. While we're at it, it would be great if we have some unit type granularity, like, units with 0 (studio,) 1, 2, 3 bedrooms. Then we could show occupancy within the unit type."
+
+### D-013 · 2026-11-22 · One SQL function for the status rules, used by both the board view and the rent roll
+- **Decision:** Extract the per-unit status derivation into `unit_status_as_of(date)`; `unit_status_today` wraps it at `CURRENT_DATE` and the admin rent roll calls it for an arbitrary date. The function is `SECURITY DEFINER` so the read-only `board_reader` keeps working through the views.
+- **Options considered:** duplicate the rules in a separate rent-roll query; a second view per date (not possible — a view can't take a parameter); one shared function (chosen).
+- **Why:** CLAUDE.md requires the status rules to live in one place. A parameterised function is the one construct both the fixed "today" view and the arbitrary-date rent roll can share.
+- **Ron:**
+
+### D-014 · 2026-11-22 · Estimates give both human time and agent time
+- **Decision:** Every task estimate gives two numbers — human time (what a senior engineer would take) and agent time (what the agent expects to take) — and the actual (agent wall-clock) is recorded against both.
+- **Options considered:** a single estimate (the process until now, which R-007/R-008 showed was ambiguous about whose time it was); two estimates (human + agent).
+- **Why:** A single number conflated the human baseline with the agent's pace. Two estimates keep the human reference (how long this would take a senior — useful for the exhibit) separate from the agent's prediction, and the actual shows the speed-up honestly.
+- **Ron:** "Take a note that estimates are human time. Moving forward, we should provide two estimates. Human and agent time."
+
+### D-015 · 2026-11-22 · Server-rendered SVG components instead of a chart library
+- **Decision:** Build the board's charts as plain Phoenix function components rendering SVG and CSS, with no chart library and no JS hooks.
+- **Options considered:** a JS charting library via a hook (rejected — adds JS, a dependency, and can't be asserted server-side); the Contex Elixir library (held in reserve); hand-built SVG function components (chosen).
+- **Why:** It uses LiveView's own rendering and diffing, so charts update live with the page for free, add no JavaScript, and are testable end-to-end with LiveViewTest (assert the rendered values). The hand-built expirations chart was straightforward, so Contex wasn't needed; if axes/labels later get awkward, adding Contex would be proposed as a needs-ron item.
+- **Ron:**
+
+### D-016 · 2026-11-22 · The board CI job re-runs when the Rails schema/views change
+- **Decision:** A change to `apps/admin/db/structure.sql` triggers the board job in CI, even when `apps/board` is unchanged.
+- **Options considered:** per-app path filter only (board runs only on `apps/board` changes); treat `structure.sql` as a fully shared input (runs all apps); trigger just the board job on it (chosen).
+- **Why:** The board reads the Rails-owned views via `board_reader`; a schema/view change can break those reads, so the board tests must re-run. Studio doesn't read the database, so it's left out.
+- **Ron:**
+
 ## Versions (pin at setup)
 Checked 2026-11-21 against official release pages. Library versions (Rails, Phoenix, LiveView, Sanity) are the current releases. Lock files pin them when the apps are generated.
 
