@@ -24,6 +24,17 @@
   </head>
 
   <body>
-    <%= yield %>
+    <% unless controller_name == "listings" %>
+      <header class="app-header">
+        <%= link_to "Leaseboard", properties_path, class: "wordmark" %>
+        <nav>
+          <%= link_to "Properties", properties_path %>
+          <%= link_to "Rent roll", rent_roll_path %>
+        </nav>
+      </header>
+    <% end %>
+    <main>
+      <%= yield %>
+    </main>
   </body>
 </html>
