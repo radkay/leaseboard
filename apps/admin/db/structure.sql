@@ -98,7 +98,7 @@ CREATE TABLE public.leases (
     updated_at timestamp(6) without time zone NOT NULL,
     CONSTRAINT leases_end_after_start CHECK ((end_date > start_date)),
     CONSTRAINT leases_monthly_rent_positive CHECK ((monthly_rent > (0)::numeric)),
-    CONSTRAINT leases_status_valid CHECK (((status)::text = ANY ((ARRAY['pending'::character varying, 'active'::character varying, 'notice_given'::character varying, 'ended'::character varying])::text[])))
+    CONSTRAINT leases_status_valid CHECK (((status)::text = ANY (ARRAY[('pending'::character varying)::text, ('active'::character varying)::text, ('notice_given'::character varying)::text, ('ended'::character varying)::text])))
 );
 
 
@@ -156,7 +156,7 @@ CREATE VIEW public.lease_expirations_12m AS
                   WHERE ((nl.unit_id = l.unit_id) AND ((nl.status)::text = 'pending'::text) AND (nl.start_date > l.end_date)))) AS has_followon
            FROM (public.leases l
              JOIN public.units u ON ((u.id = l.unit_id)))
-          WHERE ((l.status)::text = ANY ((ARRAY['active'::character varying, 'notice_given'::character varying])::text[]))
+          WHERE ((l.status)::text = ANY (ARRAY[('active'::character varying)::text, ('notice_given'::character varying)::text]))
         )
  SELECT p.id AS property_id,
     m.month,
