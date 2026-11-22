@@ -6,9 +6,13 @@
 // (apps/admin/db/seeds.rb: name.downcase with non-alphanumerics → "-").
 // Copy and amenities are deliberately fictional placeholders.
 //
-// Photos reference the local PNGs with Sanity's `_sanityAsset` syntax; the import
-// tool uploads each file and rewrites it to an asset reference. Paths are relative
-// to this NDJSON file, so run the import from this directory (see docs/DEPLOY.md).
+// Photos reference the local PNGs with Sanity's `_sanityAsset` syntax. The value
+// must be `<type>@<scheme>://...` — Sanity's import requires a URL scheme, so a
+// local file is `image@file://<path>` (not a bare path). A `file://./relative`
+// path is resolved against the NDJSON file's directory, so the reference stays
+// portable and the import must run from this directory (see docs/DEPLOY.md).
+// Format per Sanity's import docs: https://www.sanity.io/docs/importing-data
+// (and enforced by @sanity/import's /^(file|image)@([a-z]+:\/\/.*)/ matcher).
 
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -27,7 +31,7 @@ const para = (key, text) => ({
 const photo = (key, slug, n, alt) => ({
   _type: "image",
   _key: key,
-  _sanityAsset: `image@./images/${slug}-${n}.png`,
+  _sanityAsset: `image@file://./images/${slug}-${n}.png`,
   alt,
 });
 
