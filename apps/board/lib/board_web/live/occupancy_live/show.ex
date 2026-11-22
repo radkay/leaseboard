@@ -90,17 +90,19 @@ defmodule BoardWeb.OccupancyLive.Show do
 
     ~H"""
     <Layouts.app flash={@flash}>
-      <.header>
-        {@property.name}
-        <:subtitle>{@property.address}, {@property.city}, {@property.state}</:subtitle>
-        <:actions>
-          <.link navigate={~p"/"} class="text-sm hover:underline">← All properties</.link>
-        </:actions>
-      </.header>
+      <div class="flex items-baseline justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-semibold tracking-tight">{@property.name}</h1>
+          <p class="mt-1 text-secondary">{@property.address}, {@property.city}, {@property.state}</p>
+        </div>
+        <.link navigate={~p"/"} class="shrink-0 text-sm text-primary hover:underline">
+          ← All properties
+        </.link>
+      </div>
 
-      <div class="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
+      <div class="flex flex-col gap-6 sm:flex-row sm:items-center">
         <.occupancy_donut kpis={@kpis} class="w-32 shrink-0" />
-        <div class="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-4">
+        <div class="grid flex-1 grid-cols-2 gap-5 sm:grid-cols-4">
           <.kpi_tile label="Occupancy" value={"#{@kpis.occupancy_pct}%"} />
           <.kpi_tile label="Leased" value={"#{@kpis.leased_pct}%"} />
           <.kpi_tile label="Available" value={"#{@kpis.available_units}"} />
@@ -108,11 +110,13 @@ defmodule BoardWeb.OccupancyLive.Show do
         </div>
       </div>
 
-      <.status_bar kpis={@kpis} class="mt-3" />
+      <.status_bar kpis={@kpis} />
 
-      <section class="mt-8">
-        <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide opacity-60">Units</h2>
-        <.status_legend interactive active={@filter} class="mb-3" />
+      <section>
+        <h2 class="mb-3 border-b border-base-300 pb-1 text-xs font-semibold uppercase tracking-wide text-secondary">
+          Units
+        </h2>
+        <.status_legend interactive active={@filter} class="mb-4" />
 
         <div class="flex flex-wrap gap-1.5" role="list" aria-label="Units by status">
           <button
@@ -124,10 +128,10 @@ defmodule BoardWeb.OccupancyLive.Show do
             phx-value-id={unit.unit_id}
             aria-label={"Unit #{unit.unit_number}, #{status_label(unit.status)}"}
             class={[
-              "flex size-12 items-center justify-center rounded-md text-xs font-medium text-white",
+              "flex size-11 items-center justify-center rounded-[2px] text-xs font-medium text-white",
               @filter && @filter != unit.status && "opacity-25",
               MapSet.member?(@flashing, unit.unit_id) && "unit-flash",
-              @selected_unit_id == unit.unit_id && "ring-2 ring-offset-2 ring-base-content"
+              @selected_unit_id == unit.unit_id && "ring-2 ring-offset-2 ring-primary"
             ]}
             style={"background-color: #{status_color(unit.status)}"}
           >
@@ -138,15 +142,15 @@ defmodule BoardWeb.OccupancyLive.Show do
 
       <.unit_detail :if={@selected} unit={@selected} />
 
-      <section class="mt-8 grid gap-8 lg:grid-cols-2">
+      <section class="grid gap-10 lg:grid-cols-2">
         <div>
-          <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide opacity-60">
+          <h2 class="mb-3 border-b border-base-300 pb-1 text-xs font-semibold uppercase tracking-wide text-secondary">
             Occupancy by unit type
           </h2>
           <.unit_type_chart kpis={@unit_type_kpis} />
         </div>
         <div>
-          <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide opacity-60">
+          <h2 class="mb-3 border-b border-base-300 pb-1 text-xs font-semibold uppercase tracking-wide text-secondary">
             Lease expirations · next 12 months
           </h2>
           <.expirations_chart series={@expirations} />
@@ -163,14 +167,14 @@ defmodule BoardWeb.OccupancyLive.Show do
   defp unit_detail(assigns) do
     ~H"""
     <aside
-      class="mt-4 rounded-xl border border-base-300 p-4"
+      class="rounded-[2px] border border-base-300 p-5"
       aria-label={"Unit #{@unit.unit_number} detail"}
     >
       <div class="flex items-start justify-between">
         <div>
-          <h2 class="text-lg font-semibold">Unit {@unit.unit_number}</h2>
+          <h2 class="text-lg font-semibold tracking-tight">Unit {@unit.unit_number}</h2>
           <span
-            class="mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium text-white"
+            class="mt-1 inline-block rounded-[2px] px-2 py-0.5 text-xs font-medium text-white"
             style={"background-color: #{status_color(@unit.status)}"}
           >
             {status_label(@unit.status)}
@@ -179,7 +183,7 @@ defmodule BoardWeb.OccupancyLive.Show do
         <button
           type="button"
           phx-click="close_unit"
-          class="text-sm opacity-60 hover:opacity-100"
+          class="text-sm text-secondary hover:text-base-content"
           aria-label="Close unit detail"
         >
           ✕
@@ -205,7 +209,7 @@ defmodule BoardWeb.OccupancyLive.Show do
   defp detail(assigns) do
     ~H"""
     <div>
-      <dt class="opacity-60">{@label}</dt>
+      <dt class="text-secondary">{@label}</dt>
       <dd class="font-medium tabular-nums">{@value}</dd>
     </div>
     """

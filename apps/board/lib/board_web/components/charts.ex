@@ -12,9 +12,10 @@ defmodule BoardWeb.Charts do
 
   import BoardWeb.BoardComponents
 
-  # Expirations use their own two-colour scale (not the five statuses).
-  @relet_color "#0d9488"
-  @open_color "#d97706"
+  # Expirations reuse two of the status hues (docs/DESIGN.md): teal for the covered
+  # case (renewed / re-let) and terracotta for the one needing attention (open).
+  @relet_color "#246E73"
+  @open_color "#9C4A2F"
 
   @doc """
   A doughnut of the five statuses for one property. `kpis` is a struct with the
@@ -39,7 +40,7 @@ defmodule BoardWeb.Charts do
     ~H"""
     <div class={@class}>
       <svg viewBox="0 0 42 42" class="w-full max-w-[9rem]" role="img" aria-label={@summary}>
-        <circle cx="21" cy="21" r="15.915" fill="none" stroke="#e5e7eb" stroke-width="5" />
+        <circle cx="21" cy="21" r="15.915" fill="none" stroke="#e4e0d8" stroke-width="5" />
         <circle
           :for={arc <- @arcs}
           cx="21"
@@ -51,10 +52,10 @@ defmodule BoardWeb.Charts do
           stroke-dasharray={"#{arc.len} #{100 - arc.len}"}
           transform={"rotate(#{arc.angle} 21 21)"}
         />
-        <text x="21" y="20.5" text-anchor="middle" font-size="7" font-weight="700" fill="currentColor">
+        <text x="21" y="20.5" text-anchor="middle" font-size="8" font-weight="300" fill="#1a1a17">
           {@occupancy_pct}%
         </text>
-        <text x="21" y="26" text-anchor="middle" font-size="3" fill="currentColor" opacity="0.6">
+        <text x="21" y="26" text-anchor="middle" font-size="3" fill="#6a6a61">
           occupied
         </text>
       </svg>
@@ -81,7 +82,7 @@ defmodule BoardWeb.Charts do
     ~H"""
     <div class={@class}>
       <div
-        class="flex h-3 w-full overflow-hidden rounded-full bg-base-200"
+        class="flex h-3 w-full overflow-hidden rounded-[2px] bg-base-200"
         role="img"
         aria-label={@summary}
       >
@@ -115,7 +116,7 @@ defmodule BoardWeb.Charts do
         <div :for={k <- @kpis} class="text-sm">
           <div class="flex justify-between">
             <span class="font-medium">{bedrooms_label(k.bedrooms)}</span>
-            <span class="opacity-60">{k.total_units} units</span>
+            <span class="text-secondary">{k.total_units} units</span>
           </div>
           <.pct_bar label="Occupancy" value={k.occupancy_pct} color={status_color("occupied")} />
           <.pct_bar label="Leased" value={k.leased_pct} color={status_color("vacant_rented")} />
@@ -193,26 +194,11 @@ defmodule BoardWeb.Charts do
         role="img"
         aria-label={"Lease expirations over 12 months, peak #{@max} in a month."}
       >
-        <line
-          x1="2"
-          y1="100"
-          x2="350"
-          y2="100"
-          stroke="currentColor"
-          stroke-width="0.5"
-          opacity="0.3"
-        />
+        <line x1="2" y1="100" x2="350" y2="100" stroke="#e4e0d8" stroke-width="1" />
         <g :for={bar <- @bars}>
           <rect x={bar.x} y={100 - bar.relet_h} width="18" height={bar.relet_h} fill={@relet_color} />
           <rect x={bar.x} y={100 - bar.total_h} width="18" height={bar.open_h} fill={@open_color} />
-          <text
-            x={bar.x + 9}
-            y="112"
-            text-anchor="middle"
-            font-size="7"
-            fill="currentColor"
-            opacity="0.7"
-          >
+          <text x={bar.x + 9} y="112" text-anchor="middle" font-size="7" fill="#6a6a61">
             {bar.label}
           </text>
           <text
@@ -221,7 +207,7 @@ defmodule BoardWeb.Charts do
             y={96 - bar.total_h}
             text-anchor="middle"
             font-size="7"
-            fill="currentColor"
+            fill="#1a1a17"
           >
             {bar.total}
           </text>
@@ -245,9 +231,9 @@ defmodule BoardWeb.Charts do
   defp pct_bar(assigns) do
     ~H"""
     <div class="mt-1 flex items-center gap-2">
-      <span class="w-20 shrink-0 text-xs opacity-60">{@label}</span>
-      <div class="h-2 flex-1 overflow-hidden rounded-full bg-base-200">
-        <div class="h-full rounded-full" style={"width: #{@value}%; background-color: #{@color}"} />
+      <span class="w-20 shrink-0 text-xs text-secondary">{@label}</span>
+      <div class="h-2 flex-1 overflow-hidden rounded-[2px] bg-base-200">
+        <div class="h-full rounded-[2px]" style={"width: #{@value}%; background-color: #{@color}"} />
       </div>
       <span class="w-14 shrink-0 text-right text-xs tabular-nums">{@value}%</span>
     </div>
