@@ -7,21 +7,31 @@ defmodule Board.Application do
 
   @impl true
   def start(_type, _args) do
-    children = [
-      BoardWeb.Telemetry,
-      Board.Repo,
-      {DNSCluster, query: Application.get_env(:board, :dns_cluster_query) || :ignore},
-      {Phoenix.PubSub, name: Board.PubSub},
-      # Start a worker by calling: Board.Worker.start_link(arg)
-      # {Board.Worker, arg},
-      # Start to serve requests, typically the last entry
-      BoardWeb.Endpoint
-    ]
+    # Start to serve requests, typically the last entry
+    children =
+      [
+        BoardWeb.Telemetry,
+        Board.Repo,
+        {DNSCluster, query: Application.get_env(:board, :dns_cluster_query) || :ignore},
+        {Phoenix.PubSub, name: Board.PubSub}
+      ] ++
+        listeners() ++
+        [BoardWeb.Endpoint]
 
     # See https://elixir.hexdocs.pm/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: Board.Supervisor]
     Supervisor.start_link(children, opts)
+  end
+
+  # The Postgrex LISTEN connection is disabled in test so each test starts its
+  # own listener and controls it (config/test.exs sets `start_listener: false`).
+  defp listeners do
+    if Application.get_env(:board, :start_listener, true) do
+      [Board.LeaseChangeListener]
+    else
+      []
+    end
   end
 
   # Tell Phoenix to update the endpoint configuration
