@@ -4,6 +4,8 @@ One entry per decision. Newest at the bottom. Quote Ron's words when he makes th
 
 ## Template
 ### D-### · YYYY-MM-DD · Short title
+<!-- The date is Ron's local day (America/Chicago), not UTC. -->
+
 - **Decision:**
 - **Options considered:**
 - **Why:**
@@ -197,7 +199,7 @@ One entry per decision. Newest at the bottom. Quote Ron's words when he makes th
 - **Why:** The highlights were needed before the checkpoint; recording the exception keeps the log process honest rather than silently departing from D-011.
 - **Ron:** Approved; no quote recorded.
 
-### D-031 · 2026-11-23 · Admin navigation: scaffold list pages removed
+### D-031 · 2026-11-22 · Admin navigation: scaffold list pages removed
 - **Decision:** The scaffold list pages for units, leases and residents were removed. Navigation runs through properties and the rent roll, and each record's back link points to its parent (unit → property, lease → unit; residents keep no back link).
 - **Options considered:** keep the scaffold index pages; remove them and route navigation through properties and the rent roll (chosen).
 - **Why:** Nothing in the UI linked to those index pages, so they were dead ends; properties and the rent roll are the real entry points, and parent back links match how operators move through the data.

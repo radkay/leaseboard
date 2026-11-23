@@ -37,6 +37,8 @@ judgment and design: the calls caught by reading the work.
 
 ## Template
 ### R-### · YYYY-MM-DD · Short title
+<!-- The date is Ron's local day (America/Chicago), not UTC. -->
+
 - **Where:** file / module
 - **Agent produced:** what the code did
 - **Problem:** idiom | performance | correctness | security | maintainability, plus a one-line why
@@ -222,8 +224,8 @@ judgment and design: the calls caught by reading the work.
 - **Caught by:** Ron's production run
 
 ### R-026 · 2026-11-22 · "Placeholder copy — replace before launch." shipped on the public listings
-- **Where:** the public listing pages (Sanity listing content), which the README links to
-- **Agent produced:** "Placeholder copy — replace before launch." was published on the public listing pages that the README links to.
+- **Where:** `studio/seed-content/generate-ndjson.mjs` (the listing copy), published by the Sanity import
+- **Agent produced:** listing copy ending with "Placeholder copy — replace before launch.", which went public on the listing pages the README links to when the content was imported.
 - **Problem:** correctness, public-facing.
 - **Fix:** #87, re-imported 17:29.
 - **Caught by:** the review assistant
@@ -235,7 +237,7 @@ judgment and design: the calls caught by reading the work.
 - **Fix:** #83.
 - **Caught by:** the review assistant
 
-### R-028 · 2026-11-23 · New-lease form field names did not match the controller
+### R-028 · 2026-11-22 · New-lease form field names did not match the controller
 - **Where:** `apps/admin/app/views/units/_new_lease_form.html.erb`
 - **Agent produced:** a scope-less `form_with` with `form.fields_for :resident`, which renders `"[resident][...]"` field names.
 - **Problem:** correctness; the action answered 400 in production and the panel showed "Content missing". The tests posted a hand-built params hash, not the form's real field names.
