@@ -8,7 +8,11 @@
   <% end %>
 
   <%= form_with url: sign_new_lease_unit_path(unit), method: :post do |form| %>
-    <%= form.fields_for :resident do |resident| %>
+    <%# Use `fields` (not `form.fields_for`) to scope the resident inputs. On a
+        scope-less form_with the builder has an empty object name, so
+        `form.fields_for :resident` would render "[resident][...]" names that
+        the controller params.expect(resident:) does not match. %>
+    <%= fields :resident do |resident| %>
       <div class="form-field"><%= resident.label :first_name %><%= resident.text_field :first_name, required: true %></div>
       <div class="form-field"><%= resident.label :last_name %><%= resident.text_field :last_name, required: true %></div>
       <div class="form-field"><%= resident.label :email %><%= resident.email_field :email, required: true %></div>

@@ -50,6 +50,20 @@ class UnitsControllerTest < ActionDispatch::IntegrationTest
     assert_raises(ActiveRecord::StrictLoadingViolationError) { unit.leases.to_a }
   end
 
+  test "the new-lease form renders the field names the controller expects" do
+    # Guards against a mismatch between the form's field names and the strong
+    # params the action requires: the controller tests below post a hand-built
+    # hash, so only this test exercises the names the form actually renders.
+    get unit_url(@unit)
+    assert_response :success
+    %w[resident[first_name] resident[last_name] resident[email] resident[phone]].each do |name|
+      assert_select "form input[name=?]", name
+    end
+    %w[start_date end_date monthly_rent].each do |name|
+      assert_select "form input[name=?]", name
+    end
+  end
+
   test "sign_new_lease member action creates a resident and a lease" do
     unit = units(:sunset_102) # vacant
     assert_difference([ "Resident.count", "Lease.count" ], 1) do
