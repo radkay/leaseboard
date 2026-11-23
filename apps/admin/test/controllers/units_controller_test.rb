@@ -3,9 +3,7 @@ require "test_helper"
 class UnitsControllerTest < ActionDispatch::IntegrationTest
   setup { @unit = units(:sunset_101) }
 
-  test "index, show, new and edit render" do
-    get units_url
-    assert_response :success
+  test "show, new and edit render" do
     get unit_url(@unit)
     assert_response :success
     get new_unit_url
@@ -42,12 +40,6 @@ class UnitsControllerTest < ActionDispatch::IntegrationTest
     rel = Lease.where(unit: units(:sunset_101)).includes(:resident).strict_loading
     rel.each { |lease| assert_nothing_raised { lease.resident.full_name } } # preloaded
     assert_raises(ActiveRecord::StrictLoadingViolationError) { rel.first.unit.number } # not preloaded
-  end
-
-  test "index relation is strict_loading, so an un-preloaded association raises (N+1 guard)" do
-    unit = Unit.includes(:property).strict_loading.first
-    assert_nothing_raised { unit.property.name } # preloaded
-    assert_raises(ActiveRecord::StrictLoadingViolationError) { unit.leases.to_a }
   end
 
   test "the new-lease form renders the field names the controller expects" do

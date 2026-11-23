@@ -1,11 +1,6 @@
 class LeasesController < ApplicationController
   before_action :set_lease, only: %i[ show edit update give_notice sign_renewal ]
 
-  # GET /leases or /leases.json
-  def index
-    @leases = Lease.includes(:resident, unit: :property).strict_loading.order(start_date: :desc)
-  end
-
   # GET /leases/1 or /leases/1.json
   def show
   end
