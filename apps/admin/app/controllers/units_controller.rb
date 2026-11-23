@@ -1,11 +1,6 @@
 class UnitsController < ApplicationController
   before_action :set_unit, only: %i[ show edit update sign_new_lease ]
 
-  # GET /units or /units.json
-  def index
-    @units = Unit.includes(:property).strict_loading.order(:property_id, :number)
-  end
-
   # GET /units/1 or /units/1.json
   def show
     # All of the unit's leases, newest first, with residents preloaded (no N+1).

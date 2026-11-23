@@ -3,9 +3,7 @@ require "test_helper"
 class LeasesControllerTest < ActionDispatch::IntegrationTest
   setup { @lease = leases(:sunset_101_active) }
 
-  test "index, show, new and edit render" do
-    get leases_url
-    assert_response :success
+  test "show, new and edit render" do
     get lease_url(@lease)
     assert_response :success
     get new_lease_url

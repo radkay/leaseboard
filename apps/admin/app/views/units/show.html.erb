@@ -34,5 +34,5 @@
 
 <div class="actions">
   <%= link_to "Edit this unit", edit_unit_path(@unit) %>
-  <%= link_to "Back to units", units_path %>
+  <%= link_to "Back to #{@unit.property.name}", @unit.property %>
 </div>

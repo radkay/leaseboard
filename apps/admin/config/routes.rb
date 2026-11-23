@@ -1,13 +1,15 @@
 Rails.application.routes.draw do
   # No destroy anywhere in the admin (Ron, #80): records are never deleted through the UI.
-  resources :leases, except: :destroy do
+  # No index for units, leases or residents (Ron): navigation runs through
+  # properties and the rent roll, so the scaffold list pages were removed.
+  resources :leases, except: %i[ index destroy ] do
     member do
       post :give_notice
       post :sign_renewal
     end
   end
-  resources :residents, except: :destroy
-  resources :units, except: :destroy do
+  resources :residents, except: %i[ index destroy ]
+  resources :units, except: %i[ index destroy ] do
     member do
       post :sign_new_lease
     end
