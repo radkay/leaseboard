@@ -234,3 +234,10 @@ judgment and design: the calls caught by reading the work.
 - **Problem:** correctness; a public claim a reviewer can check.
 - **Fix:** #83.
 - **Caught by:** the review assistant
+
+### R-028 · 2026-11-23 · New-lease form field names did not match the controller
+- **Where:** `apps/admin/app/views/units/_new_lease_form.html.erb`
+- **Agent produced:** a scope-less `form_with` with `form.fields_for :resident`, which renders `"[resident][...]"` field names.
+- **Problem:** correctness; the action answered 400 in production and the panel showed "Content missing". The tests posted a hand-built params hash, not the form's real field names.
+- **Fix:** `fields :resident`, plus a test on the rendered input names (#92).
+- **Caught by:** Ron, using the app in production.
