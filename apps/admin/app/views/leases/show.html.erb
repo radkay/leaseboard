@@ -29,5 +29,5 @@
 
 <div>
   <%= link_to "Edit this lease", edit_lease_path(@lease) %> |
-  <%= link_to "Back to leases", leases_path %>
+  <%= link_to "Back to unit #{@lease.unit.number}", @lease.unit %>
 </div>

@@ -1,11 +1,6 @@
 class ResidentsController < ApplicationController
   before_action :set_resident, only: %i[ show edit update ]
 
-  # GET /residents or /residents.json
-  def index
-    @residents = Resident.strict_loading.order(:last_name, :first_name)
-  end
-
   # GET /residents/1 or /residents/1.json
   def show
   end

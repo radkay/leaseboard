@@ -3,9 +3,7 @@ require "test_helper"
 class ResidentsControllerTest < ActionDispatch::IntegrationTest
   setup { @resident = residents(:alice) }
 
-  test "index, show, new and edit render" do
-    get residents_url
-    assert_response :success
+  test "show, new and edit render" do
     get resident_url(@resident)
     assert_response :success
     get new_resident_url
