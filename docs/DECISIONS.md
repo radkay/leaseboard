@@ -197,6 +197,12 @@ One entry per decision. Newest at the bottom. Quote Ron's words when he makes th
 - **Why:** The highlights were needed before the checkpoint; recording the exception keeps the log process honest rather than silently departing from D-011.
 - **Ron:** Approved; no quote recorded.
 
+### D-031 · 2026-11-23 · Admin navigation: scaffold list pages removed
+- **Decision:** The scaffold list pages for units, leases and residents were removed. Navigation runs through properties and the rent roll, and each record's back link points to its parent (unit → property, lease → unit; residents keep no back link).
+- **Options considered:** keep the scaffold index pages; remove them and route navigation through properties and the rent roll (chosen).
+- **Why:** Nothing in the UI linked to those index pages, so they were dead ends; properties and the rent roll are the real entry points, and parent back links match how operators move through the data.
+- **Ron:** "Approved."
+
 ## Versions (pin at setup)
 Checked 2026-11-21 against official release pages. Library versions (Rails, Phoenix, LiveView, Sanity) are the current releases. Lock files pin them when the apps are generated.
 
