@@ -101,7 +101,7 @@ td a:hover { text-decoration: underline; }
 form { max-width: var(--measure); }
 .rent-roll-filter { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-3); margin-bottom: var(--space-4); }
 label { display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: var(--space-1); }
-input[type="text"], input[type="date"], input[type="number"], select {
+input[type="text"], input[type="email"], input[type="tel"], input[type="date"], input[type="number"], select {
   font: inherit;
   padding: var(--space-2) var(--space-2);
   border: 1px solid var(--rule);
@@ -147,3 +147,48 @@ input[type="submit"]:hover, button:hover { background: #18492f; }
 /* Scaffold flash + misc --------------------------------------------------- */
 .flash { color: var(--accent); }
 .actions { display: flex; gap: var(--space-3); margin-top: var(--space-4); }
+
+/* Floating panel: a native <dialog> opened with show() (non-blocking overlay).
+   DESIGN.md avoids boxes/shadows, but a floating panel over live content needs a
+   little elevation to separate from it, so it keeps a hairline rule plus a soft,
+   low-contrast shadow. */
+dialog.panel {
+  position: fixed;
+  top: 12vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(520px, 92vw);
+  max-height: 80vh;
+  overflow: auto;
+  margin: 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  padding: var(--space-5) var(--space-5) var(--space-4);
+  box-shadow: 0 6px 24px rgba(26, 26, 23, 0.1);
+}
+dialog.panel h3 { margin-top: 0; }
+.panel-close {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.panel-close:hover { background: none; color: var(--text); }
+.form-errors {
+  list-style: none;
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-left: 2px solid var(--status-vacant-available);
+  color: var(--status-vacant-available);
+}
+
+/* Space between the "Add new lease" button and the unit details below it. */
+[data-controller="new-lease"] { margin-bottom: var(--space-5); }

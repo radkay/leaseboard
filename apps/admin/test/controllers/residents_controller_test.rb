@@ -28,9 +28,4 @@ class ResidentsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to resident_url(@resident)
     assert_equal "555-7777", @resident.reload.phone
   end
-
-  test "destroys a resident (dependent leases cascade)" do
-    assert_difference("Resident.count", -1) { delete resident_url(residents(:bob)) }
-    assert_redirected_to residents_url
-  end
 end

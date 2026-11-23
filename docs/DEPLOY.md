@@ -60,6 +60,9 @@ If `CREATE ROLE` is **refused** (e.g. `admin_prod` lacks `CREATEROLE`): **stop a
 ask Ron.** Render's docs do not state whether the managed-database user can create
 roles, so this runbook does not assume it; don't work around it from the dashboard.
 
+**Verified 2026-11-22:** `admin_prod` has `CREATEROLE` on Render, and `CREATE ROLE
+reader_prod` succeeded as `admin_prod`.
+
 > If the admin's first deploy already failed at the privileges step because
 > `reader_prod` wasn't there yet, that's fine: create the role, then redeploy the
 > admin (step 4).
@@ -94,6 +97,10 @@ runs `bin/rails db:migrate`, which migrates the schema and — through the
 `db:privileges` hook — grants `reader_prod` its read surface and locks down the
 status function (`apps/admin/DEPLOY.md`). The admin should go healthy at `/up`.
 
+**Verified 2026-11-22:** `privileges.sql` revokes `CONNECT` from `PUBLIC`, and
+Render's database metrics (Active Connections) kept reporting afterward, so no grant
+was needed.
+
 ## 5. Point the board at `reader_prod`
 
 Open **leaseboard-db** and copy its **Internal Database URL** (host, port and
@@ -127,23 +134,22 @@ Loads the three `propertyListing` documents and their placeholder images into th
 Sanity dataset. Run once, after the seed (the slugs must match the seeded
 properties).
 
-Prerequisites: the Studio is configured for project `0dws7msn`, and you're
-authenticated (`npx sanity login`, or `SANITY_AUTH_TOKEN` with write access).
+Prerequisites: the Sanity project (`0dws7msn`) and dataset (`production`), and write
+access. Authenticate with `npx sanity login`, or export a write token as
+`SANITY_IMPORT_TOKEN` (the variable the import CLI reads; see
+`npx sanity dataset import --help`).
 
 From the `studio/` directory:
 
 ```sh
-# Dry run first — validates the documents and asset references without writing:
-npx sanity dataset import seed-content/listings.ndjson production --replace --dry-run
-
-# Then the real import:
-npx sanity dataset import seed-content/listings.ndjson production --replace
+npx sanity dataset import seed-content/listings.ndjson --dataset production --replace
 ```
 
 `--replace` upserts by document id (`listing-<slug>`), so re-running is safe. The
-image paths are relative to `seed-content/`, which is the import tool's asset base;
-run it from `studio/` exactly as above. See `studio/seed-content/README.md` to
-regenerate the content.
+image references are `image@file://./images/...`, resolved against `seed-content/`,
+so run the import from `studio/` exactly as above. There is no `--dry-run` flag; run
+`npx sanity dataset import --help` for the options. See `studio/seed-content/README.md`
+to regenerate the content.
 
 ## 8. Verify
 

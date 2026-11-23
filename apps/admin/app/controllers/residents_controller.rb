@@ -1,5 +1,5 @@
 class ResidentsController < ApplicationController
-  before_action :set_resident, only: %i[ show edit update destroy ]
+  before_action :set_resident, only: %i[ show edit update ]
 
   # GET /residents or /residents.json
   def index
@@ -47,15 +47,6 @@ class ResidentsController < ApplicationController
     end
   end
 
-  # DELETE /residents/1 or /residents/1.json
-  def destroy
-    @resident.destroy!
-
-    respond_to do |format|
-      format.html { redirect_to residents_path, notice: "Resident was successfully destroyed.", status: :see_other }
-      format.json { head :no_content }
-    end
-  end
 
   private
     # Use callbacks to share common setup or constraints between actions.

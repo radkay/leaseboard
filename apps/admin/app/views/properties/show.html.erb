@@ -1,10 +1,33 @@
-<p style="color: green"><%= notice %></p>
+<% content_for :title, @property.name %>
+
+<% if notice %><p class="flash"><%= notice %></p><% end %>
 
 <%= render @property %>
 
-<div>
-  <%= link_to "Edit this property", edit_property_path(@property) %> |
-  <%= link_to "Back to properties", properties_path %>
+<h2>Units</h2>
 
-  <%= button_to "Destroy this property", @property, method: :delete %>
+<table>
+  <thead>
+    <tr>
+      <th>Unit</th><th class="num">Beds</th><th>Status</th>
+      <th class="num">Current rent</th><th>Lease start</th><th>Lease end</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @rent_roll.rows.each do |row| %>
+      <tr>
+        <td><%= link_to row.unit_number, unit_path(row.unit_id) %></td>
+        <td class="num"><%= row.bedrooms.zero? ? "Studio" : row.bedrooms %></td>
+        <td><%= status_pill(row.status) %></td>
+        <td class="num"><%= money(row.monthly_rent) %></td>
+        <td><%= pretty_date(row.lease_start_date) %></td>
+        <td><%= pretty_date(row.lease_end_date) %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<div class="actions">
+  <%= link_to "Edit this property", edit_property_path(@property) %>
+  <%= link_to "Back to properties", properties_path %>
 </div>

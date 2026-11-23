@@ -1,17 +1,18 @@
 Rails.application.routes.draw do
-  resources :leases do
+  # No destroy anywhere in the admin (Ron, #80): records are never deleted through the UI.
+  resources :leases, except: :destroy do
     member do
       post :give_notice
       post :sign_renewal
     end
   end
-  resources :residents
-  resources :units do
+  resources :residents, except: :destroy
+  resources :units, except: :destroy do
     member do
       post :sign_new_lease
     end
   end
-  resources :properties
+  resources :properties, except: :destroy
 
   get "rent_roll", to: "rent_rolls#show", as: :rent_roll
 

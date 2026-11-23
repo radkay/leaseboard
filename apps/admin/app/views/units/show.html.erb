@@ -1,27 +1,38 @@
-<p style="color: green"><%= notice %></p>
-<p style="color: red"><%= alert %></p>
+<% content_for :title, "Unit #{@unit.number}" %>
+
+<% if notice %><p class="flash"><%= notice %></p><% end %>
+<% if alert %><p class="flash alert"><%= alert %></p><% end %>
+
+<div data-controller="new-lease" data-action="turbo:submit-end->new-lease#submitEnd">
+  <div class="actions">
+    <button type="button" data-action="new-lease#open">Add new lease</button>
+  </div>
+
+  <dialog class="panel" data-new-lease-target="dialog">
+    <button type="button" class="panel-close" data-action="new-lease#close" aria-label="Close">&times;</button>
+    <h3>Sign a new lease</h3>
+    <%= render "units/new_lease_form", unit: @unit, errors: nil %>
+  </dialog>
+</div>
 
 <%= render @unit %>
 
-<fieldset>
-  <legend>Sign a new lease (new resident)</legend>
-  <%= form_with url: sign_new_lease_unit_path(@unit), method: :post do |form| %>
-    <%= form.fields_for :resident do |resident| %>
-      <%= resident.label :first_name %> <%= resident.text_field :first_name, required: true %>
-      <%= resident.label :last_name %> <%= resident.text_field :last_name, required: true %>
-      <%= resident.label :email %> <%= resident.email_field :email, required: true %>
-      <%= resident.label :phone %> <%= resident.telephone_field :phone, required: true %>
+<h2>Leases</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Status</th><th>Resident</th><th class="num">Rent</th><th>Lease start</th><th>Lease end</th>
+    </tr>
+  </thead>
+  <tbody id="unit_leases">
+    <% @leases.each do |lease| %>
+      <%= render "leases/lease_row", lease: lease %>
     <% end %>
-    <%= form.label :start_date %> <%= form.date_field :start_date, required: true %>
-    <%= form.label :end_date %> <%= form.date_field :end_date, required: true %>
-    <%= form.label :monthly_rent %> <%= form.number_field :monthly_rent, step: :any, required: true %>
-    <%= form.submit "Sign new lease" %>
-  <% end %>
-</fieldset>
+  </tbody>
+</table>
 
-<div>
-  <%= link_to "Edit this unit", edit_unit_path(@unit) %> |
+<div class="actions">
+  <%= link_to "Edit this unit", edit_unit_path(@unit) %>
   <%= link_to "Back to units", units_path %>
-
-  <%= button_to "Destroy this unit", @unit, method: :delete %>
 </div>

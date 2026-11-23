@@ -1,5 +1,5 @@
 class UnitsController < ApplicationController
-  before_action :set_unit, only: %i[ show edit update destroy sign_new_lease ]
+  before_action :set_unit, only: %i[ show edit update sign_new_lease ]
 
   # GET /units or /units.json
   def index
@@ -8,6 +8,8 @@ class UnitsController < ApplicationController
 
   # GET /units/1 or /units/1.json
   def show
+    # All of the unit's leases, newest first, with residents preloaded (no N+1).
+    @leases = @unit.leases.includes(:resident).order(start_date: :desc, id: :desc).strict_loading
   end
 
   # GET /units/new
@@ -47,28 +49,29 @@ class UnitsController < ApplicationController
     end
   end
 
-  # DELETE /units/1 or /units/1.json
-  def destroy
-    @unit.destroy!
-
-    respond_to do |format|
-      format.html { redirect_to units_path, notice: "Unit was successfully destroyed.", status: :see_other }
-      format.json { head :no_content }
-    end
-  end
-
   # POST /units/1/sign_new_lease
   def sign_new_lease
-    lease = Leases::SignNewLease.call(
+    @lease = Leases::SignNewLease.call(
       unit: @unit,
       resident_attributes: params.expect(resident: [ :first_name, :last_name, :email, :phone ]).to_h,
       start_date: params.expect(:start_date),
       end_date: params.expect(:end_date),
       monthly_rent: params.expect(:monthly_rent)
     )
-    redirect_to lease, notice: "New lease signed."
+    respond_to do |format|
+      format.turbo_stream # sign_new_lease.turbo_stream.erb: prepend the row, reset the form
+      format.html { redirect_to @lease, notice: "New lease signed." }
+    end
   rescue ActiveRecord::RecordInvalid => e
-    redirect_to @unit, alert: "Could not sign lease: #{e.record.errors.full_messages.to_sentence}"
+    @errors = e.record.errors.full_messages
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.replace(
+          "new_lease_form", partial: "units/new_lease_form", locals: { unit: @unit, errors: @errors }
+        ), status: :unprocessable_content
+      end
+      format.html { redirect_to @unit, alert: "Could not sign lease: #{@errors.to_sentence}" }
+    end
   end
 
   private

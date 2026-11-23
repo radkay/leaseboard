@@ -29,9 +29,13 @@ class PropertiesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Renamed", @property.reload.name
   end
 
-  test "destroys a property" do
-    assert_difference("Property.count", -1) { delete property_url(@property) }
-    assert_redirected_to properties_url
+  test "show lists the property's units, each linking to its page" do
+    get property_url(@property)
+    assert_response :success
+    [ units(:sunset_101), units(:sunset_102) ].each do |unit|
+      assert_select "td a[href=?]", unit_path(unit), text: unit.number
+    end
+    assert_select "span.status" # status pill rendered
   end
 
   test "requires authentication" do

@@ -3,6 +3,38 @@
 What Ron caught when reviewing agent-written code. This is the project's most important exhibit:
 it shows the judgment behind the agents. Log every correction honestly. Newest at the bottom.
 
+## Highlights
+
+A few corrections that show the judgment behind the agents. Each links its full entry below;
+the entries themselves are unchanged.
+
+- **A SECURITY DEFINER function callable by any role.** The shared status function ran with its
+  owner's rights but left EXECUTE to PUBLIC, so any role could call it directly. We revoked
+  EXECUTE from PUBLIC, granted only the board reader, and made the function return a lease id
+  rather than resident data, so a direct call leaks nothing
+  ([R-012](#r-012--2026-11-22--a-security-definer-function-callable-by-any-role)).
+- **The review assistant's own fixes were sometimes wrong, and the agent checked.** Its proposed
+  lockdown (revoke all EXECUTE) would have broken the board's views, and its suggested advisory
+  lock could not cover a role race that is cluster-wide. Both times the agent verified the
+  behavior in Postgres and escalated instead of guessing
+  ([R-015](#r-015--2026-11-22--proposed-fix-revoke-all-execute-was-impossible-in-postgres),
+  [R-016](#r-016--2026-11-22--a-test-setup-creating-a-cluster-wide-role-raced-under-parallel-tests)).
+- **Defaults are not decisions.** Each framework's generator default was accepted, and
+  development quietly ran on two databases with the board connected as the superuser. I treated
+  it as a decision-rights failure, fixed the rule rather than just the config, and paused the
+  deploy until it was right
+  ([R-020](#r-020--2026-11-22--development-ran-on-two-databases)).
+- **Agents cannot rewrite their own rules.** Even under an approved work order, the auto-mode
+  classifier blocked an agent from committing a change to CLAUDE.md; it stopped and asked, and I
+  reviewed and committed it
+  ([R-021](#r-021--2026-11-22--an-agent-couldnt-commit-changes-to-its-own-rules)).
+- **Credit where it is due.** The metrics write-up had credited me with catches the review
+  assistant made; we corrected the attribution from the log's own "Caught by" lines
+  ([R-023](#r-023--2026-11-22--the-metrics-section-credited-ron-with-the-review-assistants-catches)).
+
+CI and the guardrails stop the mechanical mistakes before merge, so what is logged here is the
+judgment and design: the calls caught by reading the work.
+
 ## Template
 ### R-### · YYYY-MM-DD · Short title
 - **Where:** file / module
@@ -181,3 +213,24 @@ it shows the judgment behind the agents. Log every correction honestly. Newest a
 - **Problem:** process. A PR with an open question for Ron should carry `needs-ron` and not auto-merge, so the question is not lost at merge.
 - **Fix:** Process reminder issued: any PR with a "Questions for Ron" section gets `needs-ron` and does not auto-merge.
 - **Caught by:** Ron's review
+
+### R-025 · 2026-11-22 · The Sanity import runbook was never run
+- **Where:** `docs/DEPLOY.md` (the Sanity import step) and the listing NDJSON
+- **Agent produced:** The import runbook used a non-existent `--dry-run` flag and the wrong token variable, and the NDJSON asset references lacked the `file://` scheme the importer requires.
+- **Problem:** correctness; platform behavior was asserted without checking Sanity's docs (CLAUDE.md rule).
+- **Fix:** #85, #83; import verified in production at 17:07.
+- **Caught by:** Ron's production run
+
+### R-026 · 2026-11-22 · "Placeholder copy — replace before launch." shipped on the public listings
+- **Where:** the public listing pages (Sanity listing content), which the README links to
+- **Agent produced:** "Placeholder copy — replace before launch." was published on the public listing pages that the README links to.
+- **Problem:** correctness, public-facing.
+- **Fix:** #87, re-imported 17:29.
+- **Caught by:** the review assistant
+
+### R-027 · 2026-11-22 · README claims a reviewer could check were false
+- **Where:** `README.md` (draft)
+- **Agent produced:** The README draft claimed branch rules require a reviewed PR for every change (false for dev, D-010) and that logs are written "as it happens" (contradicts D-011).
+- **Problem:** correctness; a public claim a reviewer can check.
+- **Fix:** #83.
+- **Caught by:** the review assistant

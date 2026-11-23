@@ -1,5 +1,5 @@
 class PropertiesController < ApplicationController
-  before_action :set_property, only: %i[ show edit update destroy ]
+  before_action :set_property, only: %i[ show edit update ]
 
   # GET /properties or /properties.json
   def index
@@ -8,6 +8,8 @@ class PropertiesController < ApplicationController
 
   # GET /properties/1 or /properties/1.json
   def show
+    # One query over the status view for the units table (no N+1).
+    @rent_roll = RentRoll.new(@property)
   end
 
   # GET /properties/new
@@ -44,16 +46,6 @@ class PropertiesController < ApplicationController
         format.html { render :edit, status: :unprocessable_content }
         format.json { render json: @property.errors, status: :unprocessable_content }
       end
-    end
-  end
-
-  # DELETE /properties/1 or /properties/1.json
-  def destroy
-    @property.destroy!
-
-    respond_to do |format|
-      format.html { redirect_to properties_path, notice: "Property was successfully destroyed.", status: :see_other }
-      format.json { head :no_content }
     end
   end
 
