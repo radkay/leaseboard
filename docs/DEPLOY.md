@@ -98,9 +98,8 @@ runs `bin/rails db:migrate`, which migrates the schema and — through the
 status function (`apps/admin/DEPLOY.md`). The admin should go healthy at `/up`.
 
 **Verified 2026-11-22:** `privileges.sql` revokes `CONNECT` from `PUBLIC`, and
-Render's database metrics (Active Connections) kept reporting afterward. Render's
-monitoring connects as the owner, so no extra grant for a Render monitoring role is
-needed.
+Render's database metrics (Active Connections) kept reporting afterward, so no grant
+was needed.
 
 ## 5. Point the board at `reader_prod`
 
