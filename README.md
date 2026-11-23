@@ -11,8 +11,9 @@ All data is synthetic.
 - **Occupancy board:** https://leaseboard-board.onrender.com
 - **Public listing page:** https://leaseboard-admin.onrender.com/listings/maple-court
 
-> **Demo GIF placeholder.** I record a short clip here: a lease change in the admin updating
-> the board live, within a second, with no page reload.
+![Signing a lease in the admin updates the live board](docs/leaseboard-demo.gif)
+
+Signing a lease in the admin (left) updates the live board (right) with no reload.
 
 The admin is behind a login. Access is available on request: [LinkedIn](https://www.linkedin.com/in/radkay/).
 
